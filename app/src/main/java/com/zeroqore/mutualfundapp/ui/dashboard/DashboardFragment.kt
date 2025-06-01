@@ -1,7 +1,6 @@
 // app/src/main/java/com/zeroqore/mutualfundapp/ui/dashboard/DashboardFragment.kt
 package com.zeroqore.mutualfundapp.ui.dashboard
 
-import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -9,10 +8,12 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.zeroqore.mutualfundapp.data.MutualFundHolding
-import com.zeroqore.mutualfundapp.databinding.FragmentDashboardBinding
+import com.zeroqore.mutualfundapp.data.MutualFundHolding // Make sure this import is correct
+import com.zeroqore.mutualfundapp.databinding.FragmentDashboardBinding // Make sure this import is correct
 import java.text.NumberFormat
+import java.util.Date
 import java.util.Locale
+import android.graphics.Color // For gain/loss color
 
 class DashboardFragment : Fragment() {
 
@@ -30,90 +31,80 @@ class DashboardFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val holdingsList = createStubHoldings()
-        setupRecyclerView(holdingsList)
-        calculateAndDisplayPortfolioSummary(holdingsList)
+        // 1. Prepare Dummy Data (Replace with real data from ViewModel later)
+        val fundHoldings = generateDummyHoldings()
+
+        // 2. Setup RecyclerView
+        setupRecyclerView(fundHoldings)
+
+        // 3. Update Portfolio Summary (Based on dummy data for now)
+        updatePortfolioSummary(fundHoldings)
     }
 
-    private fun setupRecyclerView(holdingsList: List<MutualFundHolding>) {
-        val adapter = MutualFundHoldingAdapter(holdingsList) { mutualFund ->
-            val action = DashboardFragmentDirections.actionDashboardFragmentToFundDetailFragment(mutualFund)
+    private fun setupRecyclerView(holdings: List<MutualFundHolding>) {
+        val adapter = MutualFundHoldingsAdapter(holdings) { clickedHolding ->
+            // Handle item click: Navigate to FundDetailFragment
+            val action = DashboardFragmentDirections.actionDashboardFragmentToFundDetailFragment(clickedHolding)
             findNavController().navigate(action)
         }
         binding.fundHoldingsRecyclerView.layoutManager = LinearLayoutManager(context)
         binding.fundHoldingsRecyclerView.adapter = adapter
     }
 
-    private fun calculateAndDisplayPortfolioSummary(holdings: List<MutualFundHolding>) {
+    private fun updatePortfolioSummary(holdings: List<MutualFundHolding>) {
+        var totalInvested = 0.0
         var totalCurrentValue = 0.0
-        var totalInvestedValue = 0.0
-        var totalPreviousDayValue = 0.0 // Variable for "Today's Gain/Loss" calculation
 
         for (holding in holdings) {
+            totalInvested += (holding.purchasePrice * holding.units) // Assuming purchasePrice * units is invested value
             totalCurrentValue += holding.currentValue
-            totalInvestedValue += holding.purchasePrice
-            // Calculate previous day's total value for all units based on previousDayNav
-            totalPreviousDayValue += (holding.previousDayNav * holding.units)
         }
 
-        val totalOverallGainLossAbsolute = totalCurrentValue - totalInvestedValue
-        val totalOverallPercentageChange = if (totalInvestedValue != 0.0) {
-            (totalOverallGainLossAbsolute / totalInvestedValue) * 100.0
+        val overallGainLoss = totalCurrentValue - totalInvested
+        val overallPercentageChange = if (totalInvested != 0.0) {
+            (overallGainLoss / totalInvested) * 100
         } else {
             0.0
         }
-
-        // New calculations for "Today's Gain/Loss"
-        val totalTodayGainLossAbsolute = totalCurrentValue - totalPreviousDayValue
-        val totalTodayGainLossPercentage = if (totalPreviousDayValue != 0.0) {
-            (totalTodayGainLossAbsolute / totalPreviousDayValue) * 100.0
-        } else {
-            0.0
-        }
-
 
         val currencyFormatter = NumberFormat.getCurrencyInstance(Locale.getDefault())
-        val percentFormatter = NumberFormat.getPercentInstance(Locale.getDefault())
-        percentFormatter.minimumFractionDigits = 2
-        percentFormatter.maximumFractionDigits = 2
 
-        binding.totalInvestedValueTextView.text = currencyFormatter.format(totalInvestedValue)
+        binding.totalInvestedValueTextView.text = currencyFormatter.format(totalInvested)
         binding.totalCurrentValueTextView.text = currencyFormatter.format(totalCurrentValue)
 
-        binding.totalOverallGainLossTextView.text = currencyFormatter.format(totalOverallGainLossAbsolute)
-        binding.totalOverallPercentageChangeTextView.text = percentFormatter.format(totalOverallPercentageChange / 100.0)
+        // For simplicity, today's gain/loss is just overall for now in dummy data
+        binding.todayAbsGainLossTextView.text = String.format(
+            Locale.getDefault(),
+            "%s%s",
+            if (overallGainLoss >= 0) "+" else "",
+            currencyFormatter.format(overallGainLoss)
+        )
+        binding.todayAbsGainLossTextView.setTextColor(if (overallGainLoss >= 0) Color.parseColor("#4CAF50") else Color.parseColor("#F44336"))
 
-        // Set text for Today's Gain/Loss (USING NEW BINDING IDs)
-        binding.todayAbsGainLossTextView.text = currencyFormatter.format(totalTodayGainLossAbsolute) // <-- NEW ID
-        binding.todayPctChangeTextView.text = percentFormatter.format(totalTodayGainLossPercentage / 100.0) // <-- NEW ID
+        binding.todayPctChangeTextView.text = String.format(Locale.getDefault(), "%.2f%%", overallPercentageChange)
+        binding.todayPctChangeTextView.setTextColor(if (overallGainLoss >= 0) Color.parseColor("#4CAF50") else Color.parseColor("#F44336"))
 
 
-        // Apply color to Overall Gain/Loss
-        val overallGainLossColor = if (totalOverallGainLossAbsolute >= 0) {
-            Color.GREEN
-        } else {
-            Color.RED
-        }
-        binding.totalOverallGainLossTextView.setTextColor(overallGainLossColor)
-        binding.totalOverallPercentageChangeTextView.setTextColor(overallGainLossColor)
+        binding.totalOverallGainLossTextView.text = String.format(
+            Locale.getDefault(),
+            "%s%s",
+            if (overallGainLoss >= 0) "+" else "",
+            currencyFormatter.format(overallGainLoss)
+        )
+        binding.totalOverallGainLossTextView.setTextColor(if (overallGainLoss >= 0) Color.parseColor("#4CAF50") else Color.parseColor("#F44336"))
 
-        // Apply color to Today's Gain/Loss (USING NEW BINDING IDs)
-        val todayGainLossColor = if (totalTodayGainLossAbsolute >= 0) {
-            Color.GREEN
-        } else {
-            Color.RED
-        }
-        binding.todayAbsGainLossTextView.setTextColor(todayGainLossColor) // <-- NEW ID
-        binding.todayPctChangeTextView.setTextColor(todayGainLossColor) // <-- NEW ID
+        binding.totalOverallPercentageChangeTextView.text = String.format(Locale.getDefault(), "%.2f%%", overallPercentageChange)
+        binding.totalOverallPercentageChangeTextView.setTextColor(if (overallGainLoss >= 0) Color.parseColor("#4CAF50") else Color.parseColor("#F44336"))
     }
 
-    private fun createStubHoldings(): List<MutualFundHolding> {
+    // Dummy data generator (will be replaced by live data from API later)
+    private fun generateDummyHoldings(): List<MutualFundHolding> {
         return listOf(
             MutualFundHolding(
                 fundName = "Axis Bluechip Fund - Growth",
-                isin = "INF846K01026",
-                currentValue = 15000.00,
-                purchasePrice = 12000.00,
+                isin = "INF846K01802",
+                currentValue = 15000.0,
+                purchasePrice = 12000.0,
                 units = 100.0,
                 currentNav = 150.0,
                 purchaseNav = 120.0,
@@ -121,49 +112,35 @@ class DashboardFragment : Fragment() {
                 fundType = "Equity",
                 category = "Large Cap",
                 riskLevel = "High",
-                previousDayNav = 149.50 // Added previousDayNav
+                previousDayNav = 148.0
             ),
             MutualFundHolding(
-                fundName = "SBI Small Cap Fund - Regular Growth",
-                isin = "INF200K01006",
-                currentValue = 8000.00,
-                purchasePrice = 9000.00,
+                fundName = "SBI Small Cap Fund - Growth",
+                isin = "INF200K01673",
+                currentValue = 25000.0,
+                purchasePrice = 28000.0,
                 units = 50.0,
-                currentNav = 160.0,
-                purchaseNav = 180.0,
+                currentNav = 500.0,
+                purchaseNav = 560.0,
                 lastUpdated = "2024-05-29",
                 fundType = "Equity",
                 category = "Small Cap",
                 riskLevel = "Very High",
-                previousDayNav = 161.20 // Added previousDayNav
+                previousDayNav = 510.0
             ),
             MutualFundHolding(
-                fundName = "ICICI Prudential Balanced Advantage Fund",
-                isin = "INF194K01089",
-                currentValue = 25000.00,
-                purchasePrice = 20000.00,
-                units = 200.0,
-                currentNav = 125.0,
-                purchaseNav = 100.0,
+                fundName = "ICICI Prudential Balanced Advantage Fund - Growth",
+                isin = "INF761K01912",
+                currentValue = 8000.0,
+                purchasePrice = 7500.0,
+                units = 80.0,
+                currentNav = 100.0,
+                purchaseNav = 93.75,
                 lastUpdated = "2024-05-29",
                 fundType = "Hybrid",
-                category = "Balanced Advantage",
+                category = "Dynamic Asset Allocation",
                 riskLevel = "Moderate",
-                previousDayNav = 124.80 // Added previousDayNav
-            ),
-            MutualFundHolding(
-                fundName = "HDFC Liquid Fund - Growth",
-                isin = "INF179KC1391",
-                currentValue = 10500.00,
-                purchasePrice = 10000.00,
-                units = 100.0,
-                currentNav = 105.0,
-                purchaseNav = 100.0,
-                lastUpdated = "2024-05-29",
-                fundType = "Debt",
-                category = "Liquid",
-                riskLevel = "Low",
-                previousDayNav = 104.95 // Added previousDayNav
+                previousDayNav = 99.0
             )
         )
     }
