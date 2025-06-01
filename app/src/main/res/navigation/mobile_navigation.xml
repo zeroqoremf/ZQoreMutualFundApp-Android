@@ -31,15 +31,19 @@
 
     <fragment
         android:id="@+id/navigation_portfolio"
-        android:name="com.zeroqore.mutualfundapp.ui.placeholder.PlaceholderFragment" android:label="@string/title_portfolio"
-        tools:layout="@layout/fragment_placeholder" /> <fragment
-    android:id="@+id/navigation_transactions"
-    android:name="com.zeroqore.mutualfundapp.ui.placeholder.PlaceholderFragment" android:label="@string/title_transactions"
-    tools:layout="@layout/fragment_placeholder" />
+        android:name="com.zeroqore.mutualfundapp.ui.portfolio.PortfolioFragment"  android:label="@string/title_portfolio"
+        tools:layout="@layout/fragment_portfolio" />
+
+    <fragment
+        android:id="@+id/navigation_transactions"
+        android:name="com.zeroqore.mutualfundapp.ui.placeholder.PlaceholderFragment"
+        android:label="@string/title_transactions"
+        tools:layout="@layout/fragment_placeholder" />
 
     <fragment
         android:id="@+id/navigation_menu"
-        android:name="com.zeroqore.mutualfundapp.ui.placeholder.PlaceholderFragment" android:label="@string/title_menu"
+        android:name="com.zeroqore.mutualfundapp.ui.placeholder.PlaceholderFragment"
+        android:label="@string/title_menu"
         tools:layout="@layout/fragment_placeholder" />
 
 </navigation>
