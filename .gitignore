@@ -1,0 +1,71 @@
+# Built application files
+*.apk
+*.ap_
+*.aab
+*.aar
+
+# Files for the ART/Dalvik VM
+*.dex
+
+# Java class files
+*.class
+
+# Generated files
+bin/
+build/
+.gradle/
+captures/
+.externalNativeBuild/
+.cxx/
+local.properties
+.idea/workspace.xml
+.idea/libraries/
+.idea/caches/
+.idea/assetWizardSettings.xml
+.idea/codeStyles/
+.idea/gradle.xml # Keep this if you want to track gradle setup in git
+.idea/compiler.xml # Keep this if you want to track compiler setup in git
+.idea/render.xml # Keep this if you want to track render setup in git
+
+# Local configuration
+gradle/wrapper/gradle-wrapper.properties
+gradle-wrapper.jar
+*.iml
+.idea/
+.DS_Store
+Thumbs.db
+*/build/
+.idea/modules.xml
+
+# AVD folder
+.android/avd/
+
+# Android Studio navigation editor files
+.navigation/
+
+# Keystore files
+*.jks
+*.keystore
+
+# External native build files
+# for NDK (these are often large and machine-specific)
+**/*.o
+**/*.so
+**/*.jnilib
+**/*.dll
+**/*.dylib
+
+# Crashlytics/Firebase debug symbols
+*.map
+
+# Android Profiler results
+*.hprof
+*.trace
+
+# Test coverage
+*.exec
+
+# You may want to ignore these if you don't want to commit changes to generated files
+# but still want to keep them locally (e.g. for lint reports)
+# /app/src/main/res/raw/
+# /app/src/main/assets/

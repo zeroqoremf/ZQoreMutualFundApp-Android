@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mobile_navigation"
+    app:startDestination="@id/dashboardFragment">
+
+    <fragment
+        android:id="@+id/dashboardFragment"
+        android:name="com.zeroqore.mutualfundapp.ui.dashboard.DashboardFragment"
+        android:label="fragment_dashboard"
+        tools:layout="@layout/fragment_dashboard" >
+        <action
+            android:id="@+id/action_dashboardFragment_to_fundDetailFragment"
+            app:destination="@id/fundDetailFragment" >
+            <argument
+                android:name="mutualFund"
+                app:argType="com.zeroqore.mutualfundapp.data.MutualFundHolding" />
+        </action>
+    </fragment>
+
+    <fragment
+        android:id="@+id/fundDetailFragment"
+        android:name="com.zeroqore.mutualfundapp.ui.funddetail.FundDetailFragment"
+        android:label="fragment_fund_detail"
+        tools:layout="@layout/fragment_fund_detail" >
+        <argument
+            android:name="mutualFund"
+            app:argType="com.zeroqore.mutualfundapp.data.MutualFundHolding" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/navigation_portfolio"
+        android:name="com.zeroqore.mutualfundapp.ui.placeholder.PlaceholderFragment" android:label="@string/title_portfolio"
+        tools:layout="@layout/fragment_placeholder" /> <fragment
+    android:id="@+id/navigation_transactions"
+    android:name="com.zeroqore.mutualfundapp.ui.placeholder.PlaceholderFragment" android:label="@string/title_transactions"
+    tools:layout="@layout/fragment_placeholder" />
+
+    <fragment
+        android:id="@+id/navigation_menu"
+        android:name="com.zeroqore.mutualfundapp.ui.placeholder.PlaceholderFragment" android:label="@string/title_menu"
+        tools:layout="@layout/fragment_placeholder" />
+
+</navigation>

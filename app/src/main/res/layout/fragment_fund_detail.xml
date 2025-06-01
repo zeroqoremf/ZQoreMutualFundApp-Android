@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp"
+    tools:context=".ui.funddetail.FundDetailFragment">
+
+    <TextView
+        android:id="@+id/fundNameTextView"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:textColor="?android:attr/textColorPrimary"
+        android:layout_marginTop="16dp"
+        android:text="Fund Name Placeholder"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/isinLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="ISIN:"
+        android:textSize="16sp"
+        android:layout_marginTop="16dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/fundNameTextView" />
+
+    <TextView
+        android:id="@+id/isinTextView"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:textSize="16sp"
+        android:text="Placeholder ISIN"
+        android:layout_marginStart="8dp"
+        app:layout_constraintStart_toEndOf="@id/isinLabel"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/isinLabel"
+        app:layout_constraintBottom_toBottomOf="@id/isinLabel" />
+
+    <TextView
+        android:id="@+id/currentValueLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Current Value:"
+        android:textSize="16sp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/isinTextView" />
+
+    <TextView
+        android:id="@+id/currentValueTextView"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:textSize="16sp"
+        android:text="$0.00"
+        android:layout_marginStart="8dp"
+        app:layout_constraintStart_toEndOf="@id/currentValueLabel"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/currentValueLabel"
+        app:layout_constraintBottom_toBottomOf="@id/currentValueLabel" />
+
+    <TextView
+        android:id="@+id/unitsLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Units:"
+        android:textSize="16sp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/currentValueTextView" />
+
+    <TextView
+        android:id="@+id/unitsTextView"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:textSize="16sp"
+        android:text="0.00"
+        android:layout_marginStart="8dp"
+        app:layout_constraintStart_toEndOf="@id/unitsLabel"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/unitsLabel"
+        app:layout_constraintBottom_toBottomOf="@id/unitsLabel" />
+
+    <TextView
+        android:id="@+id/currentNavLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Current NAV:"
+        android:textSize="16sp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/unitsTextView" />
+
+    <TextView
+        android:id="@+id/currentNavTextView"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:textSize="16sp"
+        android:text="0.00"
+        android:layout_marginStart="8dp"
+        app:layout_constraintStart_toEndOf="@id/currentNavLabel"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/currentNavLabel"
+        app:layout_constraintBottom_toBottomOf="@id/currentNavLabel" />
+
+    <TextView
+        android:id="@+id/purchaseNavLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Purchase NAV:"
+        android:textSize="16sp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/currentNavTextView" />
+
+    <TextView
+        android:id="@+id/purchaseNavTextView"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:textSize="16sp"
+        android:text="0.00"
+        android:layout_marginStart="8dp"
+        app:layout_constraintStart_toEndOf="@id/purchaseNavLabel"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/purchaseNavLabel"
+        app:layout_constraintBottom_toBottomOf="@id/purchaseNavLabel" />
+
+    <TextView
+        android:id="@+id/lastUpdatedLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Last Updated:"
+        android:textSize="16sp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/purchaseNavTextView" />
+
+    <TextView
+        android:id="@+id/lastUpdatedTextView"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:textSize="16sp"
+        android:text="YYYY-MM-DD"
+        android:layout_marginStart="8dp"
+        app:layout_constraintStart_toEndOf="@id/lastUpdatedLabel"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/lastUpdatedLabel"
+        app:layout_constraintBottom_toBottomOf="@id/lastUpdatedLabel" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

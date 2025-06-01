@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Base.Theme.ZQoreMutualFundApp" parent="Theme.Material3.DayNight">
+    </style>
+
+    <style name="Theme.ZQoreMutualFundApp" parent="Base.Theme.ZQoreMutualFundApp" />
+</resources>
