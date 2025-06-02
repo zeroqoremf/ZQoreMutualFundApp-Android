@@ -1,6 +1,8 @@
 # ZQore Mutual Fund App - Android
 
-![App Logo Placeholder](https://via.placeholder.com/150) ## Table of Contents
+![App Logo Placeholder](https://via.placeholder.com/150)
+
+## Table of Contents
 - [About](#about)
 - [Features](#features)
 - [Architecture](#architecture)
@@ -19,7 +21,15 @@ This is the Android mobile application for the ZQore Mutual Fund platform. It al
 ## Features
 
 Currently implemented features:
-- **Dashboard Overview:** Displays a summary of the user's mutual fund portfolio.
+- **Dashboard Overview:** Displays a comprehensive summary of the user's mutual fund portfolio, including total invested value, current value, and overall gain/loss.
+- **Fund Holdings List:** Presents a scrollable list of individual mutual fund holdings with their current value, units, and real-time gain/loss.
+- **Dynamic UI States:** Handles and displays different UI states including:
+    - **Loading Indicator:** Shows a progress bar while data is being fetched.
+    - **Error Messages:** Displays user-friendly error messages if data fetching fails.
+    - **Empty State:** Informs the user when there are no holdings to display.
+- **Data Refresh Mechanisms:**
+    - **Pull-to-Refresh:** Allows users to refresh holdings by pulling down on the list.
+    - **Floating Action Button (FAB) Refresh:** Provides an explicit button for refreshing data.
 - **Fund Detail View:** Provides detailed information for individual mutual fund holdings (ISIN, Current Value, Units, NAVs, Last Updated).
 - **Bottom Navigation:** Seamless navigation between Dashboard, Portfolio (placeholder), Transactions (placeholder), and Menu (placeholder).
 
@@ -33,9 +43,9 @@ Planned features include:
 ## Architecture
 
 The application is built following modern Android development best practices.
-- **UI:** Android Jetpack Compose (if you plan to use it) or traditional XML layouts.
+- **UI:** Traditional XML layouts.
 - **Navigation:** Android Jetpack Navigation Component for managing in-app navigation.
-- **Data Handling:** Designed to interact with RESTful APIs from backend microservices.
+- **Data Handling:** Designed to interact with RESTful APIs from backend microservices, utilizing a `Results` sealed class for robust state management (Success, Error, Loading) of asynchronous operations.
 - **MVVM (Model-View-ViewModel):** For clean separation of concerns and testability.
 
 ## Technologies Used
@@ -43,12 +53,13 @@ The application is built following modern Android development best practices.
 - **Kotlin:** Primary programming language.
 - **Android Jetpack:**
     - **Navigation Component:** For app navigation.
-    - **ViewModel:** For UI-related data handling.
-    - **LiveData:** For observable data holders.
-    - **Data Binding / View Binding:** (Mention if used)
+    - **ViewModel:** For UI-related data handling and business logic.
+    - **LiveData:** For observable data holders, enabling reactive UI updates.
+    - **View Binding:** For safe and convenient interaction with UI components.
+    - **ListAdapter & DiffUtil:** For efficient updates of RecyclerView lists.
 - **Material Design 3:** For modern UI components.
 - **Retrofit / Ktor Client:** (Placeholder for future network calls)
-- **Coroutines:** For asynchronous programming.
+- **Coroutines:** For asynchronous programming and managing long-running tasks.
 - **Git:** Version control.
 - **GitHub:** Repository hosting (zeroqoremf organization).
 
@@ -71,7 +82,9 @@ To get a local copy up and running, follow these simple steps.
 
 ## Usage
 
-* Upon launching the app, you will be presented with a Dashboard displaying a summary of mutual fund holdings.
+* Upon launching the app, you will be presented with a Dashboard displaying a summary of mutual fund holdings and a list of individual holdings.
+* Observe the loading indicator during data fetches, and potential error/empty messages if data is unavailable.
+* Refresh the data using the pull-to-refresh gesture or by tapping the floating action button.
 * Tap on any fund holding to view its detailed information on the Fund Detail screen.
 * Use the bottom navigation bar to switch between Dashboard, Portfolio, Transactions, and Menu. (Note: Portfolio, Transactions, and Menu currently display placeholder content).
 
@@ -99,6 +112,6 @@ Distributed under the MIT License. See `LICENSE` for more information. (You can 
 
 ## Contact
 
-Ashish K - ashishk@example.com (Replace with your actual contact or leave blank)
+Ashish K - ashishk@zeroqore.com
 
 Project Link: [https://github.com/zeroqoremf/ZQoreMutualFundApp-Android](https://github.com/zeroqoremf/ZQoreMutualFundApp-Android)
