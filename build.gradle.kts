@@ -2,4 +2,6 @@
 plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.kotlin.android) apply false
+    // ADDED: Kotlin Serialization plugin declaration
+    alias(libs.plugins.kotlin.serialization) apply false
 }

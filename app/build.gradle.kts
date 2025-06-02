@@ -3,11 +3,9 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    // REMOVED: Explicitly define version for kotlin-parcelize
-   // id("org.jetbrains.kotlin.plugin.parcelize") version "1.9.24" // Use your Kotlin version
-    id("kotlin-parcelize") // RE-ADDED: Common idiomatic way to apply Parcelize, no explicit version for now
-    // ADDED: Explicitly define version for Safe Args plugin
-    id("androidx.navigation.safeargs.kotlin") version "2.7.7" // Use your Navigation version
+    id("kotlin-parcelize")
+    id("androidx.navigation.safeargs.kotlin") version "2.7.7"
+    id("org.jetbrains.kotlin.plugin.serialization")
 }
 
 android {
@@ -25,7 +23,7 @@ android {
     }
 
     buildTypes {
-        release {
+        named("release") {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -40,8 +38,8 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
-    // IMPORTANT: This block enables View Binding
-    buildFeatures {
+    // FIX: Reverted from 'buildFeatures.configure { ... }' to 'buildFeatures { ... }'
+    buildFeatures { // Changed from buildFeatures.configure {
         viewBinding = true
     }
 }
@@ -75,4 +73,15 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
+    // Retrofit for API calls
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0") // For JSON parsing
+
+    // OkHttp for logging network requests (optional but very useful for debugging)
+    implementation("com.squareup.okhttp3:okhttp:4.9.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.9.0") // For logging
+
+    // ADDED: kotlinx.serialization JSON library
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
 }

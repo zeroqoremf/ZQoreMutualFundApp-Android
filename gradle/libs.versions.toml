@@ -1,6 +1,6 @@
 [versions]
 agp = "8.8.0"
-kotlin = "1.9.24"
+kotlin = "1.9.24" # Your current Kotlin version
 coreKtx = "1.16.0"
 junit = "4.13.2"
 junitVersion = "1.2.1"
@@ -40,16 +40,8 @@ androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecyc
 # AndroidX Fragment KTX
 androidx-fragment-ktx = { group = "androidx.fragment", name = "fragment-ktx", version.ref = "fragmentKtx" }
 
-# Optional: Ensure your existing 'material' and 'androidx-activity' (activity-ktx) aliases
-# point to the updated versions provided above in the [versions] block.
-# For example, if you have:
-# material = { group = "com.google.android.material", name = "material", version.ref = "material" }
-# Ensure the 'material' version in [versions] is 1.12.0.
-# Same for 'androidx-activity' and 'activityKtx' version.
-
-
-
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-
+# ADDED: Kotlin Serialization plugin definition
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" } # Version is tied to your 'kotlin' version

@@ -1,0 +1,18 @@
+[
+  {
+    "transactionId": "TXN001",
+    "fundName": "Example Equity Fund",
+    "type": "BUY",
+    "date": "2023-01-15",
+    "amount": 10000.0,
+    "units": 100.0
+  },
+  {
+    "transactionId": "TXN002",
+    "fundName": "Debt Income Fund",
+    "type": "SELL",
+    "date": "2023-02-20",
+    "amount": 5000.0,
+    "units": 50.0
+  }
+]

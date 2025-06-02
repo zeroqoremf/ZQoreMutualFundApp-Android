@@ -11,7 +11,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider // NEW IMPORT
 import androidx.recyclerview.widget.LinearLayoutManager // NEW IMPORT
 import com.zeroqore.mutualfundapp.MutualFundApplication // NEW IMPORT
-import com.zeroqore.mutualfundapp.data.MutualFundRepository // Import the interface
+import com.zeroqore.mutualfundapp.data.MutualFundAppRepository // Import the interface
 import com.zeroqore.mutualfundapp.databinding.FragmentTransactionsBinding // Make sure this import is correct
 
 class TransactionsFragment : Fragment() {
@@ -68,7 +68,7 @@ class TransactionsFragment : Fragment() {
 }
 
 // NEW: ViewModel Factory for TransactionsViewModel
-class TransactionsViewModelFactory(private val repository: MutualFundRepository) : ViewModelProvider.Factory {
+class TransactionsViewModelFactory(private val repository: MutualFundAppRepository) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(TransactionsViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")

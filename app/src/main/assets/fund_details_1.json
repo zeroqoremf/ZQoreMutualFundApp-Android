@@ -1,0 +1,12 @@
+{
+  "fundId": "1",
+  "fundName": "Large Cap Growth Fund",
+  "investedValue": 50000.0,
+  "currentValue": 55000.0,
+  "gainLoss": 5000.0,
+  "gainLossPercentage": 10.0,
+  "units": 500.0,
+  "nav": 110.0,
+  "assetType": "Equity",
+  "riskCategory": "High"
+}

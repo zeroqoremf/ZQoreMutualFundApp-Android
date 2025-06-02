@@ -3,18 +3,19 @@ package com.zeroqore.mutualfundapp.ui.portfolio
 
 import android.graphics.Color
 import android.os.Bundle
+import android.util.Log // Import Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels // NEW IMPORT
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider // NEW IMPORT
-import com.zeroqore.mutualfundapp.MutualFundApplication // NEW IMPORT
-import com.zeroqore.mutualfundapp.data.AssetAllocation // NEW IMPORT
-import com.zeroqore.mutualfundapp.data.MutualFundRepository // NEW IMPORT
-import com.zeroqore.mutualfundapp.data.PortfolioSummary // NEW IMPORT
-import com.zeroqore.mutualfundapp.databinding.FragmentPortfolioBinding // Make sure this import is correct
+import androidx.lifecycle.ViewModelProvider
+import com.zeroqore.mutualfundapp.MutualFundApplication
+import com.zeroqore.mutualfundapp.data.AssetAllocation
+import com.zeroqore.mutualfundapp.data.MutualFundAppRepository
+import com.zeroqore.mutualfundapp.data.PortfolioSummary
+import com.zeroqore.mutualfundapp.databinding.FragmentPortfolioBinding
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -23,7 +24,6 @@ class PortfolioFragment : Fragment() {
     private var _binding: FragmentPortfolioBinding? = null
     private val binding get() = _binding!!
 
-    // Initialize ViewModel using ViewModelProvider.Factory
     private val portfolioViewModel: PortfolioViewModel by viewModels {
         PortfolioViewModelFactory((activity?.application as MutualFundApplication).appContainer.mutualFundRepository)
     }
@@ -39,14 +39,20 @@ class PortfolioFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Observe portfolio summary from the ViewModel
         portfolioViewModel.portfolioSummary.observe(viewLifecycleOwner) { summary ->
-            updatePortfolioSummaryUI(summary)
+            if (summary != null) { // Add null check for safety
+                updatePortfolioSummaryUI(summary)
+            } else {
+                Log.w("PortfolioFragment", "PortfolioSummary is null, not updating UI.")
+            }
         }
 
-        // Observe asset allocation from the ViewModel
         portfolioViewModel.assetAllocation.observe(viewLifecycleOwner) { allocation ->
-            updateAssetAllocationUI(allocation)
+            if (allocation != null) { // Add null check for safety
+                updateAssetAllocationUI(allocation)
+            } else {
+                Log.w("PortfolioFragment", "AssetAllocation is null, not updating UI.")
+            }
         }
     }
 
@@ -56,16 +62,23 @@ class PortfolioFragment : Fragment() {
         percentFormatter.minimumFractionDigits = 2
         percentFormatter.maximumFractionDigits = 2
 
-        binding.totalInvestedValueTextView.text = currencyFormatter.format(summary.totalInvested)
-        binding.totalCurrentValueTextView.text = currencyFormatter.format(summary.totalCurrentValue)
-
+        val investedText = currencyFormatter.format(summary.totalInvested)
+        val currentValueText = currencyFormatter.format(summary.currentValue)
         val gainLossText = String.format(
             Locale.getDefault(),
             "%s%s (%.2f%%)",
             if (summary.overallGainLoss >= 0) "+" else "",
             currencyFormatter.format(summary.overallGainLoss),
-            summary.overallPercentageChange
+            summary.overallGainLossPercentage
         )
+
+        Log.d("PortfolioFragment", "Updating Summary UI:")
+        Log.d("PortfolioFragment", "Total Invested: $investedText")
+        Log.d("PortfolioFragment", "Current Value: $currentValueText")
+        Log.d("PortfolioFragment", "Gain/Loss: $gainLossText")
+
+        binding.totalInvestedValueTextView.text = investedText
+        binding.totalCurrentValueTextView.text = currentValueText
         binding.overallGainLossTextView.text = gainLossText
         binding.overallGainLossTextView.setTextColor(
             if (summary.overallGainLoss >= 0) Color.parseColor("#4CAF50") else Color.parseColor("#F44336")
@@ -78,31 +91,33 @@ class PortfolioFragment : Fragment() {
         percentFormatter.minimumFractionDigits = 2
         percentFormatter.maximumFractionDigits = 2
 
-        // Equity
-        binding.equityValueTextView.text = String.format(
+        val equityValText = String.format(
             Locale.getDefault(),
             "%s (%s)",
             currencyFormatter.format(allocation.equityValue),
-            percentFormatter.format(allocation.equityPercentage / 100.0) // Convert percentage to fraction for formatter
+            percentFormatter.format(allocation.equityPercentage / 100.0)
         )
-
-        // Debt
-        binding.debtValueTextView.text = String.format(
+        val debtValText = String.format(
             Locale.getDefault(),
             "%s (%s)",
             currencyFormatter.format(allocation.debtValue),
             percentFormatter.format(allocation.debtPercentage / 100.0)
         )
-
-        // Hybrid
-        binding.hybridValueTextView.text = String.format(
+        val hybridValText = String.format(
             Locale.getDefault(),
             "%s (%s)",
             currencyFormatter.format(allocation.hybridValue),
             percentFormatter.format(allocation.hybridPercentage / 100.0)
         )
 
-        // Add more categories here if needed
+        Log.d("PortfolioFragment", "Updating Asset Allocation UI:")
+        Log.d("PortfolioFragment", "Equity: $equityValText")
+        Log.d("PortfolioFragment", "Debt: $debtValText")
+        Log.d("PortfolioFragment", "Hybrid: $hybridValText")
+
+        binding.equityValueTextView.text = equityValText
+        binding.debtValueTextView.text = debtValText
+        binding.hybridValueTextView.text = hybridValText
     }
 
     override fun onDestroyView() {
@@ -111,8 +126,7 @@ class PortfolioFragment : Fragment() {
     }
 }
 
-// NEW: ViewModel Factory for PortfolioViewModel
-class PortfolioViewModelFactory(private val repository: MutualFundRepository) : ViewModelProvider.Factory {
+class PortfolioViewModelFactory(private val repository: MutualFundAppRepository) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(PortfolioViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")

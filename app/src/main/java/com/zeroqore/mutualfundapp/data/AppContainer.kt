@@ -1,242 +1,121 @@
 // app/src/main/java/com/zeroqore/mutualfundapp/data/AppContainer.kt
 package com.zeroqore.mutualfundapp.data
 
-import java.text.NumberFormat
-import java.util.Locale
+import android.content.Context
+import android.os.Build
+import androidx.annotation.RequiresApi
+import com.zeroqore.mutualfundapp.network.MutualFundApiService
+import okhttp3.Interceptor
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.OkHttpClient
+import okhttp3.Protocol
+import okhttp3.Response
+import okhttp3.ResponseBody.Companion.toResponseBody
+import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import java.io.IOException
 
-// Existing Data Class: Mutual Fund Holding (should be in its own file)
-// No change here, ensuring it's not re-declared.
+// IMPORTANT: Ensure the following data classes are in their own respective .kt files:
+// - MutualFundHolding.kt
+// - PortfolioSummary.kt
+// - AssetAllocation.kt
+// - MutualFundTransaction.kt
+// - MenuItem.kt
 
-// Existing Data Class: Portfolio Summary (retained)
-data class PortfolioSummary(
-    val totalInvested: Double,
-    val totalCurrentValue: Double,
-    val overallGainLoss: Double,
-    val overallPercentageChange: Double
-)
+// Import the NEW repository interface and its concrete network implementation
+import com.zeroqore.mutualfundapp.data.MutualFundAppRepository
+import com.zeroqore.mutualfundapp.data.NetworkMutualFundAppRepository
 
-// Existing Data Class: Asset Allocation by Fund Type (retained)
-data class AssetAllocation(
-    val equityValue: Double,
-    val equityPercentage: Double,
-    val debtValue: Double,
-    val debtPercentage: Double,
-    val hybridValue: Double,
-    val hybridPercentage: Double
-    // Add other fund types as needed
-)
+// AppContainer: Centralizes the creation and provision of application-wide dependencies
+@RequiresApi(Build.VERSION_CODES.GINGERBREAD)
+class AppContainer(private val context: Context) {
 
-// Existing Data Class: Mutual Fund Transaction (retained)
-data class MutualFundTransaction(
-    val transactionId: String,
-    val fundName: String,
-    val isin: String,
-    val transactionDate: String, // Format:YYYY-MM-DD
-    val transactionType: String, // e.g., "BUY", "SELL", "SWP", "STP", "DIVIDEND"
-    val amount: Double,
-    val units: Double,
-    val navAtTransaction: Double
-)
+    // FIX: Changed BASE_URL from HTTPS to HTTP to bypass SSL certificate issues
+    private val BASE_URL = "http://private-anon-e766e44b9e-mutualfundapi.apiary-mock.com/" // Changed to HTTP
 
-// NEW Data Class: MenuItem
-data class MenuItem(
-    val id: String,
-    val title: String,
-    val description: String? = null // Optional description for the menu item
-    // Add an icon resource ID if we decide to use icons later
-)
-
-// Interface for the Mutual Fund Repository
-interface MutualFundRepository {
-    fun getFundHoldings(): List<MutualFundHolding>
-    fun getPortfolioSummary(): PortfolioSummary
-    fun getAssetAllocation(): AssetAllocation
-    fun getTransactions(): List<MutualFundTransaction>
-    fun getMenuItems(): List<MenuItem> // NEW method
-}
-
-// MOCK Implementation of the Repository
-class MockMutualFundRepository : MutualFundRepository {
-
-    // Re-using the same dummy holdings to calculate portfolio data
-    private val dummyHoldings = listOf(
-        MutualFundHolding(
-            fundName = "Axis Bluechip Fund - Growth",
-            isin = "INF846K01802",
-            currentValue = 15000.0,
-            purchasePrice = 12000.0,
-            units = 100.0,
-            currentNav = 150.0,
-            purchaseNav = 120.0,
-            lastUpdated = "2024-05-29",
-            fundType = "Equity",
-            category = "Large Cap",
-            riskLevel = "High",
-            previousDayNav = 148.0
-        ),
-        MutualFundHolding(
-            fundName = "SBI Small Cap Fund - Growth",
-            isin = "INF200K01673",
-            currentValue = 25000.0,
-            purchasePrice = 28000.0,
-            units = 50.0,
-            currentNav = 500.0,
-            purchaseNav = 560.0,
-            lastUpdated = "2024-05-29",
-            fundType = "Equity",
-            category = "Small Cap",
-            riskLevel = "Very High",
-            previousDayNav = 510.0
-        ),
-        MutualFundHolding(
-            fundName = "ICICI Prudential Balanced Advantage Fund - Growth",
-            isin = "INF761K01912",
-            currentValue = 8000.0,
-            purchasePrice = 7500.0,
-            units = 80.0,
-            currentNav = 100.0,
-            purchaseNav = 93.75,
-            lastUpdated = "2024-05-29",
-            fundType = "Hybrid",
-            category = "Dynamic Asset Allocation",
-            riskLevel = "Moderate",
-            previousDayNav = 99.0
-        )
-    )
-
-    // Dummy Transactions data (retained)
-    private val dummyTransactions = listOf(
-        MutualFundTransaction(
-            transactionId = "TXN001",
-            fundName = "Axis Bluechip Fund - Growth",
-            isin = "INF846K01802",
-            transactionDate = "2024-01-15",
-            transactionType = "BUY",
-            amount = 12000.0,
-            units = 100.0,
-            navAtTransaction = 120.0
-        ),
-        MutualFundTransaction(
-            transactionId = "TXN002",
-            fundName = "SBI Small Cap Fund - Growth",
-            isin = "INF200K01673",
-            transactionDate = "2023-11-20",
-            transactionType = "BUY",
-            amount = 28000.0,
-            units = 50.0,
-            navAtTransaction = 560.0
-        ),
-        MutualFundTransaction(
-            transactionId = "TXN003",
-            fundName = "ICICI Prudential Balanced Advantage Fund - Growth",
-            isin = "INF761K01912",
-            transactionDate = "2024-03-10",
-            transactionType = "BUY",
-            amount = 7500.0,
-            units = 80.0,
-            navAtTransaction = 93.75
-        ),
-        MutualFundTransaction(
-            transactionId = "TXN004",
-            fundName = "Axis Bluechip Fund - Growth",
-            isin = "INF846K01802",
-            transactionDate = "2024-05-20",
-            transactionType = "DIVIDEND",
-            amount = 500.0,
-            units = 0.0, // No units change for dividend payout
-            navAtTransaction = 145.0 // NAV on dividend date
-        ),
-        MutualFundTransaction(
-            transactionId = "TXN005",
-            fundName = "SBI Small Cap Fund - Growth",
-            isin = "INF200K01673",
-            transactionDate = "2024-06-01", // Today's date (mock)
-            transactionType = "SELL", // Example sell
-            amount = 5000.0, // Amount received
-            units = 10.0, // Units sold
-            navAtTransaction = 500.0 // NAV at transaction
-        )
-    )
-
-    // NEW: Dummy Menu Items data
-    private val dummyMenuItems = listOf(
-        MenuItem(id = "profile", title = "My Profile"),
-        MenuItem(id = "settings", title = "Settings"),
-        MenuItem(id = "statements", title = "Statements"),
-        MenuItem(id = "contact", title = "Contact Us"),
-        MenuItem(id = "about", title = "About App"),
-        MenuItem(id = "logout", title = "Logout")
-    )
-
-    override fun getFundHoldings(): List<MutualFundHolding> {
-        return dummyHoldings
+    // Setup HttpLoggingInterceptor for logging network requests and responses
+    private val loggingInterceptor = HttpLoggingInterceptor().apply {
+        setLevel(HttpLoggingInterceptor.Level.BODY) // Logs request and response bodies
     }
 
-    override fun getPortfolioSummary(): PortfolioSummary {
-        var totalInvested = 0.0
-        var totalCurrentValue = 0.0
-
-        for (holding in dummyHoldings) {
-            totalInvested += (holding.purchasePrice * holding.units)
-            totalCurrentValue += holding.currentValue
+    // NEW HELPER FUNCTION: To read a file from assets
+    @RequiresApi(Build.VERSION_CODES.GINGERBREAD)
+    private fun getJsonFromAssets(fileName: String): String {
+        return try {
+            context.assets.open(fileName).bufferedReader().use { it.readText() }
+        } catch (e: IOException) {
+            throw IOException("Error reading asset file: $fileName. ${e.message}", e)
         }
-
-        val overallGainLoss = totalCurrentValue - totalInvested
-        val overallPercentageChange = if (totalInvested != 0.0) {
-            (overallGainLoss / totalInvested) * 100
-        } else {
-            0.0
-        }
-
-        return PortfolioSummary(
-            totalInvested = totalInvested,
-            totalCurrentValue = totalCurrentValue,
-            overallGainLoss = overallGainLoss,
-            overallPercentageChange = overallPercentageChange
-        )
     }
 
-    override fun getAssetAllocation(): AssetAllocation {
-        var equityValue = 0.0
-        var debtValue = 0.0
-        var hybridValue = 0.0
-        var totalCurrentValue = 0.0
+    // UPDATED: Custom Interceptor to read from assets based on the requested URL path
+    @RequiresApi(Build.VERSION_CODES.GINGERBREAD)
+    private val assetReadingInterceptor = Interceptor { chain ->
+        val request = chain.request()
+        val url = request.url.toString()
+        val pathSegments = request.url.pathSegments
 
-        for (holding in dummyHoldings) {
-            when (holding.fundType) {
-                "Equity" -> equityValue += holding.currentValue
-                "Debt" -> debtValue += holding.currentValue
-                "Hybrid" -> hybridValue += holding.currentValue
-                // Add other types as needed
+        val assetFileName: String? = when {
+            url.endsWith("mutual_fund_holdings.json") -> "holdings.json"
+            url.endsWith("holdings.json") -> "holdings.json"
+            url.endsWith("transactions.json") -> "transactions.json"
+            url.endsWith("portfolio_summary.json") -> "portfolio_summary.json"
+            pathSegments.size >= 2 && pathSegments[pathSegments.size - 2] == "fund_details" ->
+                "fund_details_${pathSegments.last()}"
+
+            else -> null
+        }
+
+        if (assetFileName != null) {
+            try {
+                val jsonString = getJsonFromAssets(assetFileName)
+                println("AssetReadingInterceptor: Serving $assetFileName for URL: $url")
+
+                Response.Builder()
+                    .code(200)
+                    .message("OK - From Assets")
+                    .request(request)
+                    .protocol(Protocol.HTTP_1_1)
+                    .body(jsonString.toResponseBody("application/json".toMediaTypeOrNull()))
+                    .addHeader("content-type", "application/json")
+                    .build()
+            } catch (e: IOException) {
+                println("AssetReadingInterceptor Error: ${e.message}")
+                Response.Builder()
+                    .code(404)
+                    .message("Asset mock file not found or could not be read: $assetFileName")
+                    .request(request)
+                    .protocol(Protocol.HTTP_1_1)
+                    .body("{}".toResponseBody("application/json".toMediaTypeOrNull()))
+                    .addHeader("content-type", "application/json")
+                    .build()
             }
-            totalCurrentValue += holding.currentValue
+        } else {
+            println("AssetReadingInterceptor: No asset mock found for URL: $url. Proceeding to network.")
+            chain.proceed(request)
         }
-
-        val equityPercentage = if (totalCurrentValue != 0.0) (equityValue / totalCurrentValue) * 100 else 0.0
-        val debtPercentage = if (totalCurrentValue != 0.0) (debtValue / totalCurrentValue) * 100 else 0.0
-        val hybridPercentage = if (totalCurrentValue != 0.0) (hybridValue / totalCurrentValue) * 100 else 0.0
-
-        return AssetAllocation(
-            equityValue = equityValue,
-            equityPercentage = equityPercentage,
-            debtValue = debtValue,
-            debtPercentage = debtPercentage,
-            hybridValue = hybridValue,
-            hybridPercentage = hybridPercentage
-        )
     }
 
-    override fun getTransactions(): List<MutualFundTransaction> {
-        return dummyTransactions.sortedByDescending { it.transactionDate } // Sort by date for display
+    @RequiresApi(Build.VERSION_CODES.GINGERBREAD)
+    private val okHttpClient = OkHttpClient.Builder()
+        .addInterceptor(loggingInterceptor)
+        .addInterceptor(assetReadingInterceptor)
+        .build()
+
+    private val retrofit: Retrofit by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create()) // Using Gson Converter for now
+            .build()
     }
 
-    // NEW: Implement getMenuItems()
-    override fun getMenuItems(): List<MenuItem> {
-        return dummyMenuItems
+    private val mutualFundApiService: MutualFundApiService by lazy {
+        retrofit.create(MutualFundApiService::class.java)
     }
-}
 
-// Simple AppContainer to provide dependencies
-class AppContainer {
-    val mutualFundRepository: MutualFundRepository = MockMutualFundRepository()
+    val mutualFundRepository: MutualFundAppRepository by lazy {
+        NetworkMutualFundAppRepository(mutualFundApiService)
+    }
 }

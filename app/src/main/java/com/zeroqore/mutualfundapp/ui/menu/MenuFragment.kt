@@ -12,7 +12,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider // NEW IMPORT
 import androidx.recyclerview.widget.LinearLayoutManager // NEW IMPORT
 import com.zeroqore.mutualfundapp.MutualFundApplication // NEW IMPORT
-import com.zeroqore.mutualfundapp.data.MutualFundRepository // Import the repository interface
+import com.zeroqore.mutualfundapp.data.MutualFundAppRepository // Import the repository interface
 import com.zeroqore.mutualfundapp.databinding.FragmentMenuBinding // Make sure this import is correct
 
 class MenuFragment : Fragment() {
@@ -79,7 +79,7 @@ class MenuFragment : Fragment() {
 }
 
 // NEW: ViewModel Factory for MenuViewModel
-class MenuViewModelFactory(private val repository: MutualFundRepository) : ViewModelProvider.Factory {
+class MenuViewModelFactory(private val repository: MutualFundAppRepository) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(MenuViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")

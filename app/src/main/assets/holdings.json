@@ -1,0 +1,58 @@
+[
+  {
+    "fundName": "Axis Bluechip Fund - Growth",
+    "isin": "INF846K01802",
+    "currentValue": 15000.0,
+    "purchasePrice": 12000.0,
+    "units": 100.0,
+    "currentNav": 150.0,
+    "purchaseNav": 120.0,
+    "lastUpdated": "2024-05-29",
+    "fundType": "Equity",
+    "category": "Large Cap",
+    "riskLevel": "High",
+    "previousDayNav": 148.0
+  },
+  {
+    "fundName": "SBI Small Cap Fund - Growth",
+    "isin": "INF200K01673",
+    "currentValue": 25000.0,
+    "purchasePrice": 28000.0,
+    "units": 50.0,
+    "currentNav": 500.0,
+    "purchaseNav": 560.0,
+    "lastUpdated": "2024-05-29",
+    "fundType": "Equity",
+    "category": "Small Cap",
+    "riskLevel": "Very High",
+    "previousDayNav": 510.0
+  },
+  {
+    "fundName": "ICICI Prudential Balanced Advantage Fund - Growth",
+    "isin": "INF761K01912",
+    "currentValue": 8000.0,
+    "purchasePrice": 7500.0,
+    "units": 80.0,
+    "currentNav": 100.0,
+    "purchaseNav": 93.75,
+    "lastUpdated": "2024-05-29",
+    "fundType": "Hybrid",
+    "category": "Dynamic Asset Allocation",
+    "riskLevel": "Moderate",
+    "previousDayNav": 99.0
+  },
+  {
+    "fundName": "HDFC Liquid Fund - Growth",
+    "isin": "INF179KC1391",
+    "currentValue": 10000.0,
+    "purchasePrice": 9900.0,
+    "units": 100.0,
+    "currentNav": 100.0,
+    "purchaseNav": 99.0,
+    "lastUpdated": "2024-05-29",
+    "fundType": "Debt",
+    "category": "Liquid",
+    "riskLevel": "Low",
+    "previousDayNav": 99.50
+  }
+]

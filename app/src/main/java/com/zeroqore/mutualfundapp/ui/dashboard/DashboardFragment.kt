@@ -14,7 +14,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.zeroqore.mutualfundapp.MutualFundApplication // NEW IMPORT for your Application class
 import com.zeroqore.mutualfundapp.data.MutualFundHolding
-import com.zeroqore.mutualfundapp.data.MutualFundRepository // NEW IMPORT for the Repository interface
+import com.zeroqore.mutualfundapp.data.MutualFundAppRepository // NEW IMPORT for the Repository interface
 import com.zeroqore.mutualfundapp.databinding.FragmentDashboardBinding
 import java.text.NumberFormat
 import java.util.Locale
@@ -117,7 +117,7 @@ class DashboardFragment : Fragment() {
 
 // NEW: ViewModel Factory to create DashboardViewModel with a repository dependency
 // This class is defined inside DashboardFragment for simplicity, but could be a top-level class.
-class DashboardViewModelFactory(private val repository: MutualFundRepository) : ViewModelProvider.Factory {
+class DashboardViewModelFactory(private val repository: MutualFundAppRepository) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(DashboardViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")

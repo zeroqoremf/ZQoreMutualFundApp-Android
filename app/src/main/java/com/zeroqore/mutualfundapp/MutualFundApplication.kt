@@ -2,16 +2,16 @@
 package com.zeroqore.mutualfundapp
 
 import android.app.Application
-import com.zeroqore.mutualfundapp.data.AppContainer // IMPORTANT: Ensure this import is correct
+import com.zeroqore.mutualfundapp.data.AppContainer // Make sure this import exists
 
 class MutualFundApplication : Application() {
-    // AppContainer instance, created once for the entire application lifecycle
-    // 'lateinit' means it will be initialized later, but before first use.
-    // It's initialized in onCreate().
+
+    // Declare appContainer as lateinit var
     lateinit var appContainer: AppContainer
 
     override fun onCreate() {
         super.onCreate()
-        appContainer = AppContainer()
+        // Initialize AppContainer, passing 'this' (which is the Application context)
+        appContainer = AppContainer(this) // CHANGED: Pass 'this' as context
     }
 }
