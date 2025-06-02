@@ -175,12 +175,10 @@
                     android:textStyle="bold"
                     android:textColor="@color/black"/>
             </LinearLayout>
-
-        </LinearLayout>
-    </androidx.cardview.widget.CardView>
+        </LinearLayout> </androidx.cardview.widget.CardView>
 
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-        android:id="@+id/swipeRefreshLayout"
+        android:id="@+id/swipe_refresh_layout_dashboard"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginTop="16dp"
@@ -198,7 +196,7 @@
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     <ProgressBar
-        android:id="@+id/progressBar"
+        android:id="@+id/progress_bar_dashboard"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:visibility="gone"
@@ -209,24 +207,34 @@
         tools:visibility="visible" />
 
     <TextView
-        android:id="@+id/errorMessageTextView"
+        android:id="@+id/text_error_dashboard"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
-        android:layout_marginBottom="8dp"
-        android:text="An error occurred while loading data. Please try again."
+        android:text="@string/error_loading_data"
         android:textColor="@android:color/holo_red_dark"
         android:textSize="16sp"
         android:textAlignment="center"
         android:visibility="gone"
-        app:layout_constraintBottom_toTopOf="@id/progressBar"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.8"
-        app:layout_constraintVertical_chainStyle="packed"
         tools:visibility="visible" />
+
+    <TextView
+        android:id="@+id/text_empty_dashboard"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/no_holdings_found"
+        android:textSize="18sp"
+        android:textColor="@android:color/darker_gray"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/refreshFab"
@@ -239,4 +247,6 @@
         android:contentDescription="Refresh Data"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:srcCompat="@android:drawable/ic_popup_sync" /> </androidx.constraintlayout.widget.ConstraintLayout>
+        app:srcCompat="@android:drawable/ic_popup_sync" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

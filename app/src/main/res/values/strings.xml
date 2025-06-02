@@ -8,4 +8,6 @@
     <string name="title_home">Home</string>
     <string name="title_notifications">Notifications</string>
     <string name="fund_details">Fund Details</string>
+    <string name="error_loading_data">Failed to load data. Please try again.</string>
+    <string name="no_holdings_found">No fund holdings found.</string>
 </resources>

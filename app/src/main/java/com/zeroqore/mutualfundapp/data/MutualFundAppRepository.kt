@@ -3,6 +3,7 @@ package com.zeroqore.mutualfundapp.data
 
 import com.zeroqore.mutualfundapp.network.MutualFundApiService
 import com.zeroqore.mutualfundapp.util.Results // <<< CHANGED IMPORT PATH AND NAME
+import kotlinx.coroutines.delay
 import retrofit2.HttpException
 import java.io.IOException
 
@@ -387,6 +388,7 @@ class MockMutualFundAppRepository : MutualFundAppRepository {
     }
 
     override suspend fun getHoldings(): Results<List<MutualFundHolding>> {
+        delay(1500L) // Add a delay here to simulate network call
         return Results.Success(dummyHoldings)
     }
 
@@ -399,6 +401,7 @@ class MockMutualFundAppRepository : MutualFundAppRepository {
     }
 
     override suspend fun getPortfolioSummary(): Results<PortfolioSummary> {
+        delay(1500L) // Add a delay here to simulate network call
         return Results.Success(dummyPortfolioSummary)
     }
 
