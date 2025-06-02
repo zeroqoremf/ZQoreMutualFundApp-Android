@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.zeroqore.mutualfundapp.data.MutualFundHolding
 import com.zeroqore.mutualfundapp.data.MutualFundAppRepository
+import com.zeroqore.mutualfundapp.util.Results // Import the Results sealed class
 import kotlinx.coroutines.launch
 import android.util.Log // Import Log
 
@@ -18,30 +19,40 @@ class DashboardViewModel(private val repository: MutualFundAppRepository) : View
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> = _isLoading
 
-    private val _errorMessage = MutableLiveData<String?>() // MutableLiveData allows null
-    val errorMessage: LiveData<String?> = _errorMessage // NOW PUBLIC LIVE DATA ALSO ALLOWS NULL
+    private val _errorMessage = MutableLiveData<String?>()
+    val errorMessage: LiveData<String?> = _errorMessage
 
     init {
-        loadFundHoldings() // This internal function name is fine, but it will now call the new API method
+        loadFundHoldings()
     }
 
-    private fun loadFundHoldings() { // Renamed for clarity to loadHoldings, but keeping for now as is
+    private fun loadFundHoldings() {
         viewModelScope.launch {
             _isLoading.postValue(true)
             _errorMessage.postValue(null) // Clear any previous error message
 
-            try {
-                // *** IMPORTANT CHANGE HERE ***
-                val holdings = repository.getHoldings() // Changed from getFundHoldings() to getHoldings()
-                _fundHoldings.postValue(holdings)
-                Log.d("DashboardViewModel", "Fetched ${holdings.size} fund holdings.")
-            } catch (e: Exception) {
-                _errorMessage.postValue("Failed to load funds: ${e.message}")
-                _fundHoldings.postValue(emptyList()) // Set an empty list on error
-                Log.e("DashboardViewModel", "Error loading fund holdings", e)
-            } finally {
-                _isLoading.postValue(false)
+            // Call the repository method, which now returns a Results sealed class
+            val result = repository.getHoldings()
+
+            // Handle the different states of the Results sealed class
+            when (result) {
+                is Results.Success -> {
+                    _fundHoldings.postValue(result.data)
+                    Log.d("DashboardViewModel", "Fetched ${result.data.size} fund holdings.")
+                }
+                is Results.Error -> {
+                    _errorMessage.postValue(result.message ?: "An unknown error occurred while fetching holdings.")
+                    _fundHoldings.postValue(emptyList()) // Set an empty list on error
+                    Log.e("DashboardViewModel", "Error loading fund holdings: ${result.message}", result.exception)
+                }
+                is Results.Loading -> {
+                    // This state is typically used for immediate UI feedback (e.g., showing a spinner)
+                    // before the actual data/error is returned.
+                    // The _isLoading.postValue(true) at the start already handles initial loading state.
+                    Log.d("DashboardViewModel", "Repository reported loading state.")
+                }
             }
+            _isLoading.postValue(false) // Always set to false after completion (success or error)
         }
     }
 
