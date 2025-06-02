@@ -5,12 +5,17 @@ import com.zeroqore.mutualfundapp.network.MutualFundApiService
 
 // Renamed Interface for the Mutual Fund Repository
 interface MutualFundAppRepository {
+    // Keep for now, but consider removing later as it's deprecated in API service
     suspend fun getFundHoldings(): List<MutualFundHolding>
     suspend fun getHoldings(): List<MutualFundHolding>
     suspend fun getMenuItems(): List<MenuItem>
-    suspend fun getPortfolioSummary(): PortfolioSummary // Interface already correct
+    suspend fun getPortfolioSummary(): PortfolioSummary
     suspend fun getAssetAllocation(): AssetAllocation
     suspend fun getTransactions(): List<MutualFundTransaction>
+    // --- NEW: Add these methods to the interface ---
+    suspend fun getFundDetails(fundId: String): MutualFundHolding
+    suspend fun getFunds(): List<Fund>
+    // --- END NEW ---
 }
 
 // Renamed Concrete implementation of the Repository that uses the network service
@@ -25,7 +30,7 @@ class NetworkMutualFundAppRepository(private val apiService: MutualFundApiServic
     }
 
     override suspend fun getMenuItems(): List<MenuItem> {
-        // For now, returning dummy data
+        // For now, returning dummy data as there's no API for this yet
         return listOf(
             MenuItem(id = "profile", title = "My Profile"),
             MenuItem(id = "settings", title = "Settings"),
@@ -36,15 +41,14 @@ class NetworkMutualFundAppRepository(private val apiService: MutualFundApiServic
         )
     }
 
-    // *** IMPORTANT CHANGE HERE FOR PORTFOLIO SUMMARY ***
     override suspend fun getPortfolioSummary(): PortfolioSummary {
-        // Now calling the API service to fetch the summary from portfolio_summary.json
         return apiService.getPortfolioSummary()
     }
 
     override suspend fun getAssetAllocation(): AssetAllocation {
-        // TODO: Update this to call apiService.getAssetAllocation() once you have a dedicated asset_allocation.json
-        val holdings = getFundHoldings() // Currently still calculates based on holdings
+        // TODO: Consider updating this to call apiService.getAssetAllocation() once you have a dedicated asset_allocation.json
+        // Current logic: Calculates based on holdings fetched from API
+        val holdings = getHoldings() // Use the non-deprecated getHoldings()
         var equityValue = 0.0
         var debtValue = 0.0
         var hybridValue = 0.0
@@ -74,41 +78,20 @@ class NetworkMutualFundAppRepository(private val apiService: MutualFundApiServic
     }
 
     override suspend fun getTransactions(): List<MutualFundTransaction> {
-        // TODO: This should now call apiService.getTransactions() to fetch from transactions.json
-        // For now, returning dummy data.
-        return listOf(
-            MutualFundTransaction(
-                transactionId = "TRN001",
-                fundName = "Axis Bluechip Fund - Growth",
-                isin = "INF846K01802",
-                transactionDate = "2024-05-15",
-                transactionType = "BUY",
-                amount = 12000.0,
-                units = 100.0,
-                navAtTransaction = 120.0
-            ),
-            MutualFundTransaction(
-                transactionId = "TRN002",
-                fundName = "SBI Small Cap Fund - Growth",
-                isin = "INF200K01673",
-                transactionDate = "2024-04-20",
-                transactionType = "BUY",
-                amount = 28000.0,
-                units = 50.0,
-                navAtTransaction = 560.0
-            ),
-            MutualFundTransaction(
-                transactionId = "TRN003",
-                fundName = "ICICI Prudential Balanced Advantage Fund - Growth",
-                isin = "INF761K01912",
-                transactionDate = "2024-03-10",
-                transactionType = "BUY",
-                amount = 7500.0,
-                units = 80.0,
-                navAtTransaction = 93.75
-            )
-        )
+        // --- FIXED: Now calling API service instead of returning dummy data ---
+        return apiService.getTransactions()
+        // --- END FIXED ---
     }
+
+    // --- NEW: Implementations for newly added interface methods ---
+    override suspend fun getFundDetails(fundId: String): MutualFundHolding {
+        return apiService.getFundDetails(fundId)
+    }
+
+    override suspend fun getFunds(): List<Fund> {
+        return apiService.getFunds()
+    }
+    // --- END NEW ---
 }
 
 // Renamed Optional: Mock implementation of the Repository
@@ -158,12 +141,11 @@ class MockMutualFundAppRepository : MutualFundAppRepository {
         )
     )
 
-    // *** NEW: Add dummy portfolio summary data for mock implementation ***
     private val dummyPortfolioSummary = PortfolioSummary(
         totalInvested = 150000.0,
-        currentValue = 165000.0, // Corrected key
+        currentValue = 165000.0,
         overallGainLoss = 15000.0,
-        overallGainLossPercentage = 10.0, // Corrected key
+        overallGainLossPercentage = 10.0,
         lastUpdated = "2024-06-01T14:30:00Z"
     )
 
@@ -190,6 +172,42 @@ class MockMutualFundAppRepository : MutualFundAppRepository {
         )
     )
 
+    // NEW: Dummy funds data for MockMutualFundAppRepository
+    private val dummyFunds = listOf(
+        Fund(
+            fundName = "Mock Equity Fund",
+            isin = "MOCKETF001",
+            currentNav = 120.5,
+            previousDayNav = 119.8,
+            fundType = "Equity",
+            category = "Multi Cap",
+            riskLevel = "High",
+            aum = 10000.0,
+            minInvestment = 100.0,
+            expenseRatio = 0.8,
+            oneYearReturn = 18.0,
+            threeYearReturn = 15.0,
+            fiveYearReturn = 12.0,
+            fundHouse = "Mock AMC"
+        ),
+        Fund(
+            fundName = "Mock Debt Fund",
+            isin = "MOCKDBT001",
+            currentNav = 105.2,
+            previousDayNav = 105.1,
+            fundType = "Debt",
+            category = "Short Duration",
+            riskLevel = "Low",
+            aum = 5000.0,
+            minInvestment = 500.0,
+            expenseRatio = 0.2,
+            oneYearReturn = 7.0,
+            threeYearReturn = 6.5,
+            fiveYearReturn = 6.0,
+            fundHouse = "Mock Debt House"
+        )
+    )
+
     override suspend fun getFundHoldings(): List<MutualFundHolding> {
         return dummyHoldings
     }
@@ -201,16 +219,17 @@ class MockMutualFundAppRepository : MutualFundAppRepository {
     override suspend fun getMenuItems(): List<MenuItem> {
         return listOf(
             MenuItem(id = "mock_profile", title = "Mock Profile"),
-            MenuItem(id = "mock_settings", title = "Mock Settings")
+            MenuItem(id = "mock_settings", title = "Mock Settings"),
+            MenuItem(id = "mock_statements", title = "Mock Statements") // Added for completeness
         )
     }
 
-    // *** IMPORTANT CHANGE HERE FOR MOCK PORTFOLIO SUMMARY ***
     override suspend fun getPortfolioSummary(): PortfolioSummary {
         return dummyPortfolioSummary
     }
 
     override suspend fun getAssetAllocation(): AssetAllocation {
+        // Calculate based on dummy holdings
         var equityValue = 0.0
         var debtValue = 0.0
         var hybridValue = 0.0
@@ -242,4 +261,16 @@ class MockMutualFundAppRepository : MutualFundAppRepository {
     override suspend fun getTransactions(): List<MutualFundTransaction> {
         return dummyTransactions
     }
+
+    // --- NEW: Implementations for newly added interface methods in Mock repository ---
+    override suspend fun getFundDetails(fundId: String): MutualFundHolding {
+        // Return a dummy holding, or null if not found
+        return dummyHoldings.firstOrNull { it.isin == fundId }
+            ?: dummyHoldings.first() // Return first as a fallback if not found
+    }
+
+    override suspend fun getFunds(): List<Fund> {
+        return dummyFunds
+    }
+    // --- END NEW ---
 }

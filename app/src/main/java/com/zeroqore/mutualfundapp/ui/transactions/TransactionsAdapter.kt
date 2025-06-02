@@ -1,4 +1,3 @@
-// app/src/main/java/com/zeroqore/mutualfundapp/ui/transactions/TransactionsAdapter.kt
 package com.zeroqore.mutualfundapp.ui.transactions
 
 import android.graphics.Color
@@ -24,16 +23,18 @@ class TransactionsAdapter(private val transactions: List<MutualFundTransaction>)
 
             binding.transactionAmountTextView.text = currencyFormatter.format(transaction.amount)
 
-            // Set transaction type text and color/background
-            binding.transactionTypeTextView.text = transaction.transactionType
-            when (transaction.transactionType.uppercase(Locale.ROOT)) {
+            // Set transaction type text and color/background safely
+            // Use ?.let to only execute the block if transactionType is not null
+            // Otherwise, set a default empty string for display
+            val typeText = transaction.transactionType ?: ""
+            binding.transactionTypeTextView.text = typeText
+
+            when (typeText.uppercase(Locale.ROOT)) { // Use the non-nullable typeText for uppercase conversion
                 "BUY" -> {
                     binding.transactionTypeTextView.setBackgroundResource(com.zeroqore.mutualfundapp.R.drawable.bg_transaction_type_buy)
                     binding.transactionTypeTextView.setTextColor(Color.WHITE)
                 }
                 "SELL" -> {
-                    // For SELL, we'll need a bg_transaction_type_sell drawable (red)
-                    // For now, let's just make it red if we haven't created the drawable yet
                     binding.transactionTypeTextView.setBackgroundColor(Color.parseColor("#F44336")) // Red
                     binding.transactionTypeTextView.setTextColor(Color.WHITE)
                 }
@@ -42,7 +43,7 @@ class TransactionsAdapter(private val transactions: List<MutualFundTransaction>)
                     binding.transactionTypeTextView.setTextColor(Color.BLACK)
                 }
                 else -> {
-                    // Default color for other types
+                    // Default color for other types or if typeText was empty/null
                     binding.transactionTypeTextView.setBackgroundColor(Color.LTGRAY)
                     binding.transactionTypeTextView.setTextColor(Color.BLACK)
                 }

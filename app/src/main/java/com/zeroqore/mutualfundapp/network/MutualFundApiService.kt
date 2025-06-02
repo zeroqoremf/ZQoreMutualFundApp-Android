@@ -3,7 +3,8 @@ package com.zeroqore.mutualfundapp.network
 
 import com.zeroqore.mutualfundapp.data.MutualFundHolding
 import com.zeroqore.mutualfundapp.data.MutualFundTransaction
-import com.zeroqore.mutualfundapp.data.PortfolioSummary // ADDED: Import PortfolioSummary
+import com.zeroqore.mutualfundapp.data.PortfolioSummary
+import com.zeroqore.mutualfundapp.data.Fund // <-- ADDED THIS IMPORT
 
 import retrofit2.http.GET
 import retrofit2.http.Path
@@ -26,4 +27,8 @@ interface MutualFundApiService {
 
     @GET("fund_details/{fundId}.json")
     suspend fun getFundDetails(@Path("fundId") fundId: String): MutualFundHolding
+
+    @GET("funds.json")
+    suspend fun getFunds(): List<Fund> // <-- ADDED THIS METHOD
+
 }

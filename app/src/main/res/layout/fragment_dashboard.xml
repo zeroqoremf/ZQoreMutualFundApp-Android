@@ -70,6 +70,7 @@
                 android:gravity="center_vertical"
                 android:layout_marginTop="4dp">
                 <TextView
+                    android:id="@+id/totalCurrentValueLabel"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
@@ -98,7 +99,8 @@
                     android:text="Today's Gain/Loss:"
                     android:textSize="16sp" />
                 <TextView
-                    android:id="@+id/todayAbsGainLossTextView" android:layout_width="wrap_content"
+                    android:id="@+id/todayAbsGainLossTextView"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="$0.00"
                     android:textSize="16sp"
@@ -113,13 +115,15 @@
                 android:gravity="center_vertical"
                 android:layout_marginTop="4dp">
                 <TextView
-                    android:id="@+id/todayPctChangeLabel" android:layout_width="0dp"
+                    android:id="@+id/todayPctChangeLabel"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="Today's % Change:"
                     android:textSize="16sp" />
                 <TextView
-                    android:id="@+id/todayPctChangeTextView" android:layout_width="wrap_content"
+                    android:id="@+id/todayPctChangeTextView"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="0.00%"
                     android:textSize="16sp"
@@ -175,14 +179,64 @@
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/fundHoldingsRecyclerView"
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipeRefreshLayout"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginTop="16dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/portfolioSummaryCard" />
+        app:layout_constraintTop_toBottomOf="@id/portfolioSummaryCard">
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/fundHoldingsRecyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            tools:listitem="@layout/item_mutual_fund_holding" />
+
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:visibility="visible" />
+
+    <TextView
+        android:id="@+id/errorMessageTextView"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="8dp"
+        android:text="An error occurred while loading data. Please try again."
+        android:textColor="@android:color/holo_red_dark"
+        android:textSize="16sp"
+        android:textAlignment="center"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/progressBar"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.8"
+        app:layout_constraintVertical_chainStyle="packed"
+        tools:visibility="visible" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/refreshFab"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="24dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:contentDescription="Refresh Data"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:srcCompat="@android:drawable/ic_popup_sync" /> </androidx.constraintlayout.widget.ConstraintLayout>
