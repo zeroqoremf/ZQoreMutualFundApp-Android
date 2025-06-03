@@ -1,22 +1,24 @@
-// app/src/main/java/com/zeroqore/mutualfundapp/MutualFundApplication.kt
 package com.zeroqore.mutualfundapp
 
 import android.app.Application
 import com.zeroqore.mutualfundapp.data.AppContainer
-import com.zeroqore.mutualfundapp.di.MutualFundViewModelFactory // UPDATED IMPORT
+//import com.zeroqore.mutualfundapp.data.AppContainerImpl // Assuming you'll rename AppContainer to AppContainerImpl
 
 class MutualFundApplication : Application() {
 
-    lateinit var appContainer: AppContainer
-    lateinit var viewModelFactory: MutualFundViewModelFactory
+    // Use a lateinit var to initialize it once
+    lateinit var container: AppContainer
 
     override fun onCreate() {
         super.onCreate()
-        appContainer = AppContainer(
-            context = applicationContext,
-            baseUrl = BuildConfig.BASE_URL,
-            useMockAssetInterceptor = BuildConfig.USE_MOCK_ASSET_INTERCEPTOR
+        // Initialize AppContainer
+        container = AppContainer(
+            this,
+            BuildConfig.BASE_URL,
+            BuildConfig.USE_MOCK_ASSET_INTERCEPTOR
         )
-        viewModelFactory = MutualFundViewModelFactory(appContainer.mutualFundRepository)
+        // If you decide to rename AppContainer to AppContainerImpl,
+        // change the line above to:
+        // container = AppContainerImpl(this, BuildConfig.BASE_URL, BuildConfig.USE_MOCK_ASSET_INTERCEPTOR)
     }
 }

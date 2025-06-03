@@ -8,8 +8,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels // Used for by viewModels delegate
-import androidx.lifecycle.ViewModelProvider // Still needed for ViewModelProvider.Factory type
+// REMOVED: import androidx.fragment.app.viewModels // No longer needed
+import androidx.lifecycle.ViewModelProvider // Needed for ViewModelProvider.Factory type
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.zeroqore.mutualfundapp.MutualFundApplication // Import your Application class
@@ -18,17 +18,15 @@ import com.zeroqore.mutualfundapp.databinding.FragmentDashboardBinding
 import com.zeroqore.mutualfundapp.ui.dashboard.MutualFundHoldingsAdapter // Assuming your adapter is here or import it
 import java.text.NumberFormat
 import java.util.Locale
+import com.zeroqore.mutualfundapp.ui.dashboard.DashboardViewModel
 
 class DashboardFragment : Fragment() {
 
     private var _binding: FragmentDashboardBinding? = null
     private val binding get() = _binding!!
 
-    // Initialize ViewModel using the global ViewModelFactory from your Application class
-    private val dashboardViewModel: DashboardViewModel by viewModels {
-        // Access the viewModelFactory property from your custom Application class
-        (activity?.application as MutualFundApplication).viewModelFactory
-    }
+    // CHANGED: Initialize ViewModel using explicit ViewModelProvider later
+    private lateinit var dashboardViewModel: DashboardViewModel
 
     // Initialize adapter for RecyclerView
     private lateinit var holdingsAdapter: MutualFundHoldingsAdapter
@@ -44,6 +42,13 @@ class DashboardFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // ADDED: Initialize ViewModel here using the custom Factory from your Application class
+        val application = requireActivity().application as MutualFundApplication
+        dashboardViewModel = ViewModelProvider(
+            this,
+            DashboardViewModel.Factory(application.container.mutualFundRepository)
+        ).get(DashboardViewModel::class.java)
+
         // Initialize RecyclerView adapter
         // Pass an empty list initially, it will be updated by LiveData
         // The adapter no longer takes the list in its constructor; ListAdapter handles it via submitList
@@ -51,7 +56,6 @@ class DashboardFragment : Fragment() {
             val action = DashboardFragmentDirections.actionDashboardFragmentToFundDetailFragment(clickedHolding)
             findNavController().navigate(action)
         }
-
 
         binding.fundHoldingsRecyclerView.layoutManager = LinearLayoutManager(context)
         binding.fundHoldingsRecyclerView.adapter = holdingsAdapter

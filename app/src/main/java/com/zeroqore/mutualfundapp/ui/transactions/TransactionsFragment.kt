@@ -23,7 +23,7 @@ class TransactionsFragment : Fragment() {
 
     // Initialize ViewModel using ViewModelProvider.Factory
     private val transactionsViewModel: TransactionsViewModel by viewModels {
-        TransactionsViewModelFactory((activity?.application as MutualFundApplication).appContainer.mutualFundRepository)
+        TransactionsViewModelFactory((activity?.application as MutualFundApplication).container.mutualFundRepository)
     }
 
     override fun onCreateView(

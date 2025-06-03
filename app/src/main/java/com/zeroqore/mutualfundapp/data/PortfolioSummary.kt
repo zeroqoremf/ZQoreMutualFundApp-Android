@@ -1,13 +1,15 @@
 // app/src/main/java/com/zeroqore/mutualfundapp/data/PortfolioSummary.kt
 package com.zeroqore.mutualfundapp.data
 
-import kotlinx.serialization.Serializable // Add this import for JSON serialization
+// REMOVED: import kotlinx.serialization.Serializable
+// ADDED: Optional Gson import if you need @SerializedName annotations, though not strictly needed here
+// import com.google.gson.annotations.SerializedName
 
-@Serializable // Mark data class as serializable
+// REMOVED: @Serializable annotation
 data class PortfolioSummary(
     val totalInvested: Double,
-    val currentValue: Double, // Changed from totalCurrentValue to match JSON
+    val currentValue: Double,
     val overallGainLoss: Double,
-    val overallGainLossPercentage: Double, // Changed from overallPercentageChange to match JSON
-    val lastUpdated: String // New: Added to match JSON
+    val overallGainLossPercentage: Double,
+    val lastUpdated: String
 )

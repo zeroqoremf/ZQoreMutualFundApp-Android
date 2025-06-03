@@ -23,13 +23,12 @@ class TransactionsAdapter(private val transactions: List<MutualFundTransaction>)
 
             binding.transactionAmountTextView.text = currencyFormatter.format(transaction.amount)
 
-            // Set transaction type text and color/background safely
-            // Use ?.let to only execute the block if transactionType is not null
-            // Otherwise, set a default empty string for display
-            val typeText = transaction.transactionType ?: ""
-            binding.transactionTypeTextView.text = typeText
+            // Safely get the transaction type, ensuring it's never null
+            // Use .orEmpty() which is a concise way to convert String? to String
+            val typeText = transaction.transactionType.orEmpty()
+            binding.transactionTypeTextView.text = typeText // Set the TextView's text
 
-            when (typeText.uppercase(Locale.ROOT)) { // Use the non-nullable typeText for uppercase conversion
+            when (typeText.uppercase(Locale.ROOT)) { // Now typeText is guaranteed non-null
                 "BUY" -> {
                     binding.transactionTypeTextView.setBackgroundResource(com.zeroqore.mutualfundapp.R.drawable.bg_transaction_type_buy)
                     binding.transactionTypeTextView.setTextColor(Color.WHITE)

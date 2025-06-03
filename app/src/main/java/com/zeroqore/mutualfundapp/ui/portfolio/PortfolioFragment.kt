@@ -8,8 +8,9 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
-import androidx.navigation.fragment.findNavController // Although not used here, keep if used elsewhere
+// REMOVED: import androidx.fragment.app.viewModels // No longer needed for explicit ViewModelProvider
+import androidx.lifecycle.ViewModelProvider // Added this import
+import androidx.navigation.fragment.findNavController
 import com.zeroqore.mutualfundapp.MutualFundApplication
 import com.zeroqore.mutualfundapp.data.AssetAllocation
 import com.zeroqore.mutualfundapp.data.PortfolioSummary
@@ -22,11 +23,8 @@ class PortfolioFragment : Fragment() {
     private var _binding: FragmentPortfolioBinding? = null
     private val binding get() = _binding!!
 
-    // UPDATED: Initialize ViewModel using the global ViewModelFactory from your Application class
-    private val portfolioViewModel: PortfolioViewModel by viewModels {
-        // Access the viewModelFactory property from your custom Application class
-        (activity?.application as MutualFundApplication).viewModelFactory
-    }
+    // CHANGED: Initialize ViewModel using explicit ViewModelProvider later
+    private lateinit var portfolioViewModel: PortfolioViewModel
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -38,6 +36,13 @@ class PortfolioFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        // ADDED: Initialize ViewModel here using the custom Factory from your Application class
+        val application = requireActivity().application as MutualFundApplication
+        portfolioViewModel = ViewModelProvider(
+            this,
+            PortfolioViewModel.Factory(application.container.mutualFundRepository)
+        ).get(PortfolioViewModel::class.java)
 
         portfolioViewModel.portfolioSummary.observe(viewLifecycleOwner) { summary ->
             if (summary != null) {
@@ -55,25 +60,20 @@ class PortfolioFragment : Fragment() {
             }
         }
 
-        // ADDED: OBSERVE isLoading state
         portfolioViewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
             binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
-            binding.swipeRefreshLayout.isRefreshing = isLoading // Control SwipeRefreshLayout's spinner
+            binding.swipeRefreshLayout.isRefreshing = isLoading
 
-            // You might want to hide/show main content based on loading, similar to Dashboard
-            // For example, hide content only if loading AND no data is present yet
             binding.portfolioContentGroup.visibility =
                 if (isLoading && portfolioViewModel.portfolioSummary.value == null) View.GONE else View.VISIBLE
 
-            binding.refreshFab.isEnabled = !isLoading // Disable FAB while loading
+            binding.refreshFab.isEnabled = !isLoading
         }
 
-        // ADDED: OBSERVE errorMessage state
         portfolioViewModel.errorMessage.observe(viewLifecycleOwner) { errorMessage ->
             if (!errorMessage.isNullOrBlank()) {
                 binding.errorMessageTextView.text = errorMessage
                 binding.errorMessageTextView.visibility = View.VISIBLE
-                // Optional: Hide main content if there's an error and no data
                 if (portfolioViewModel.portfolioSummary.value == null) {
                     binding.portfolioContentGroup.visibility = View.GONE
                 }
@@ -82,12 +82,10 @@ class PortfolioFragment : Fragment() {
             }
         }
 
-        // ADDED: Set up SwipeRefreshLayout listener
         binding.swipeRefreshLayout.setOnRefreshListener {
             portfolioViewModel.refreshPortfolioData()
         }
 
-        // ADDED: Set up Floating Action Button listener
         binding.refreshFab.setOnClickListener {
             portfolioViewModel.refreshPortfolioData()
         }
@@ -120,7 +118,6 @@ class PortfolioFragment : Fragment() {
         binding.overallGainLossTextView.setTextColor(
             if (summary.overallGainLoss >= 0) Color.parseColor("#4CAF50") else Color.parseColor("#F44336")
         )
-        // Also update last updated timestamp if you have a TextView for it
         binding.lastUpdatedTextView.text = "Last Updated: ${summary.lastUpdated}"
     }
 
@@ -164,6 +161,3 @@ class PortfolioFragment : Fragment() {
         _binding = null
     }
 }
-
-// REMOVED: The duplicate PortfolioViewModelFactory class is removed from here.
-// It is now managed centrally in MutualFundViewModelFactory.kt

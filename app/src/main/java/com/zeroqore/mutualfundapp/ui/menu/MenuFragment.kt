@@ -24,7 +24,7 @@ class MenuFragment : Fragment() {
 
     // Initialize ViewModel using ViewModelProvider.Factory
     private val menuViewModel: MenuViewModel by viewModels {
-        MenuViewModelFactory((activity?.application as MutualFundApplication).appContainer.mutualFundRepository)
+        MenuViewModelFactory((activity?.application as MutualFundApplication).container.mutualFundRepository)
     }
 
     override fun onCreateView(
