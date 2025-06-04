@@ -6,19 +6,19 @@ import com.zeroqore.mutualfundapp.util.Results
 import kotlinx.coroutines.delay
 import retrofit2.HttpException
 import java.io.IOException
+import android.util.Log // Import Log for logging
 
 // Renamed Interface for the Mutual Fund Repository
 interface MutualFundAppRepository {
     // Keep for now, but consider removing later as it's deprecated in API service
     suspend fun getFundHoldings(): Results<List<MutualFundHolding>>
     // MODIFIED: Updated signature to reflect changes in MutualFundApiService
-    suspend fun getHoldings(): Results<List<MutualFundHolding>>
+    suspend fun getHoldings(investorId: String, distributorId: String): Results<List<MutualFundHolding>>
     suspend fun getMenuItems(): List<MenuItem>
     // MODIFIED: Interface method remains the same, but implementation will now use IDs
-    suspend fun getPortfolioSummary(): Results<PortfolioSummary>
-    // REMOVED: getAssetAllocation() is no longer needed as calculation is handled by ViewModel
-    // suspend fun getAssetAllocation(): AssetAllocation
-    suspend fun getTransactions(): Results<List<MutualFundTransaction>>
+    suspend fun getPortfolioSummary(investorId: String, distributorId: String): Results<PortfolioSummary>
+    // UPDATED INTERFACE: Now requires investorId and distributorId
+    suspend fun getTransactions(investorId: String, distributorId: String): Results<List<MutualFundTransaction>>
     suspend fun getFundDetails(fundId: String): Results<MutualFundHolding>
     suspend fun getFunds(): Results<List<Fund>>
 }
@@ -26,7 +26,7 @@ interface MutualFundAppRepository {
 // Renamed Concrete implementation of the Repository that uses the network service
 class NetworkMutualFundAppRepository(
     private val apiService: MutualFundApiService,
-    // ADDED: Inject AuthTokenManager here
+    // ADDED: Inject AuthTokenManager here (This is correctly done from previous steps)
     private val authTokenManager: AuthTokenManager
 ) : MutualFundAppRepository {
 
@@ -37,6 +37,7 @@ class NetworkMutualFundAppRepository(
             val holdings = apiService.getFundHoldings()
             Results.Success(holdings)
         } catch (e: IOException) {
+            Log.e("MutualFundAppRepository", "IOException getFundHoldings: ${e.message}", e)
             Results.Error(e, "Please check your internet connection for fund holdings.")
         } catch (e: HttpException) {
             val errorMessage = when (e.code()) {
@@ -45,28 +46,20 @@ class NetworkMutualFundAppRepository(
                 in 500..599 -> "Server error fetching holdings. Please try again later."
                 else -> "An unexpected error occurred: ${e.message()}"
             }
+            Log.e("MutualFundAppRepository", "HttpException getFundHoldings: $errorMessage", e)
             Results.Error(e, errorMessage)
         } catch (e: Exception) {
+            Log.e("MutualFundAppRepository", "Unknown error getFundHoldings: ${e.message}", e)
             Results.Error(e, "An unknown error occurred while fetching fund holdings.")
         }
     }
 
-    override suspend fun getHoldings(): Results<List<MutualFundHolding>> {
+    override suspend fun getHoldings(investorId: String, distributorId: String): Results<List<MutualFundHolding>> {
         return try {
-            val investorId = authTokenManager.getInvestorId()
-            val distributorId = authTokenManager.getDistributorId()
-
-            if (investorId == null || distributorId == null) {
-                return Results.Error(
-                    IllegalStateException("Investor ID or Distributor ID not found."),
-                    "User not logged in or authentication data missing. Please log in again."
-                )
-            }
-
-            // MODIFIED: Pass both distributorId and investorId to the API service
             val holdings = apiService.getHoldings(distributorId, investorId)
             Results.Success(holdings)
         } catch (e: IOException) {
+            Log.e("MutualFundAppRepository", "IOException getHoldings: ${e.message}", e)
             Results.Error(e, "Please check your internet connection for holdings.")
         } catch (e: HttpException) {
             val errorMessage = when (e.code()) {
@@ -75,8 +68,10 @@ class NetworkMutualFundAppRepository(
                 in 500..599 -> "Server error fetching holdings. Please try again later."
                 else -> "An unexpected error occurred: ${e.message()}"
             }
+            Log.e("MutualFundAppRepository", "HttpException getHoldings: $errorMessage", e)
             Results.Error(e, errorMessage)
         } catch (e: Exception) {
+            Log.e("MutualFundAppRepository", "Unknown error getHoldings: ${e.message}", e)
             Results.Error(e, "An unknown error occurred while fetching holdings.")
         }
     }
@@ -92,23 +87,12 @@ class NetworkMutualFundAppRepository(
         )
     }
 
-    override suspend fun getPortfolioSummary(): Results<PortfolioSummary> {
+    override suspend fun getPortfolioSummary(investorId: String, distributorId: String): Results<PortfolioSummary> {
         return try {
-            // ADDED: Retrieve investorId and distributorId
-            val investorId = authTokenManager.getInvestorId()
-            val distributorId = authTokenManager.getDistributorId()
-
-            if (investorId == null || distributorId == null) {
-                return Results.Error(
-                    IllegalStateException("Investor ID or Distributor ID not found."),
-                    "User not logged in or authentication data missing. Please log in again."
-                )
-            }
-
-            // MODIFIED: Pass both distributorId and investorId to the API service
             val summary = apiService.getPortfolioSummary(distributorId, investorId)
             Results.Success(summary)
         } catch (e: IOException) {
+            Log.e("MutualFundAppRepository", "IOException getPortfolioSummary: ${e.message}", e)
             Results.Error(e, "Please check your internet connection for portfolio summary.")
         } catch (e: HttpException) {
             val errorMessage = when (e.code()) {
@@ -117,32 +101,40 @@ class NetworkMutualFundAppRepository(
                 in 500..599 -> "Server error fetching portfolio summary. Please try again later."
                 else -> "An unexpected error occurred: ${e.message()}"
             }
+            Log.e("MutualFundAppRepository", "HttpException getPortfolioSummary: $errorMessage", e)
             Results.Error(e, errorMessage)
         } catch (e: Exception) {
+            Log.e("MutualFundAppRepository", "Unknown error getPortfolioSummary: ${e.message}", e)
             Results.Error(e, "An unknown error occurred while fetching portfolio summary.")
         }
     }
 
-    // This method has been removed as its functionality is now handled within the ViewModel.
-    // override suspend fun getAssetAllocation(): AssetAllocation { /* ... */ }
-
-    override suspend fun getTransactions(): Results<List<MutualFundTransaction>> {
+    // UPDATED: Now requires investorId and distributorId parameters.
+    // TEMPORARILY MODIFIED TO USE getTransactionsSimplified()
+    override suspend fun getTransactions(investorId: String, distributorId: String): Results<List<MutualFundTransaction>> {
         return try {
-            // If transactions also needs IDs, you'd add similar logic here
-            val transactions = apiService.getTransactions()
+            // *** TEMPORARY CHANGE: Using getTransactionsSimplified() for testing the root path ***
+            val transactions = apiService.getTransactionsSimplified()
+            Log.d("MutualFundAppRepository", "Fetched transactions using simplified endpoint.")
             Results.Success(transactions)
         } catch (e: IOException) {
-            Results.Error(e, "Please check your internet connection for transactions.")
+            val errorMessage = "Please check your internet connection for transactions."
+            Log.e("MutualFundAppRepository", "IOException getTransactions: $errorMessage", e)
+            Results.Error(e, errorMessage)
         } catch (e: HttpException) {
+            val errorBody = e.response()?.errorBody()?.string()
             val errorMessage = when (e.code()) {
-                404 -> "Transactions data not found. Please try again later."
-                in 400..499 -> "Client error fetching transactions: ${e.message()}"
-                in 500..599 -> "Server error fetching transactions. Please try again later."
-                else -> "An unexpected error occurred: ${e.message()}"
+                404 -> "Transactions data not found at simplified endpoint. Please try again later."
+                in 400..499 -> "Client error fetching transactions (simplified): ${e.message()} | Body: $errorBody"
+                in 500..599 -> "Server error fetching transactions (simplified). Please try again later."
+                else -> "An unexpected error occurred while fetching transactions (simplified): ${e.message()} | Body: $errorBody"
             }
+            Log.e("MutualFundAppRepository", "HttpException getTransactions: $errorMessage", e)
             Results.Error(e, errorMessage)
         } catch (e: Exception) {
-            Results.Error(e, "An unknown error occurred while fetching transactions.")
+            val errorMessage = "An unknown error occurred while fetching transactions (simplified): ${e.message}"
+            Log.e("MutualFundAppRepository", "Unknown error getTransactions: $errorMessage", e)
+            Results.Error(e, errorMessage)
         }
     }
 
@@ -151,6 +143,7 @@ class NetworkMutualFundAppRepository(
             val fundDetails = apiService.getFundDetails(fundId)
             Results.Success(fundDetails)
         } catch (e: IOException) {
+            Log.e("MutualFundAppRepository", "IOException getFundDetails: ${e.message}", e)
             Results.Error(e, "Please check your internet connection for fund details.")
         } catch (e: HttpException) {
             val errorMessage = when (e.code()) {
@@ -159,8 +152,10 @@ class NetworkMutualFundAppRepository(
                 in 500..599 -> "Server error fetching fund details. Please try again later."
                 else -> "An unexpected error occurred: ${e.message()}"
             }
+            Log.e("MutualFundAppRepository", "HttpException getFundDetails: $errorMessage", e)
             Results.Error(e, errorMessage)
         } catch (e: Exception) {
+            Log.e("MutualFundAppRepository", "Unknown error getFundDetails: ${e.message}", e)
             Results.Error(e, "An unknown error occurred while fetching fund details.")
         }
     }
@@ -170,6 +165,7 @@ class NetworkMutualFundAppRepository(
             val funds = apiService.getFunds()
             Results.Success(funds)
         } catch (e: IOException) {
+            Log.e("MutualFundAppRepository", "IOException getFunds: ${e.message}", e)
             Results.Error(e, "Please check your internet connection to load funds.")
         } catch (e: HttpException) {
             val errorMessage = when (e.code()) {
@@ -178,8 +174,10 @@ class NetworkMutualFundAppRepository(
                 in 500..599 -> "Server error fetching funds. Please try again later."
                 else -> "An unexpected error occurred: ${e.message()}"
             }
+            Log.e("MutualFundAppRepository", "HttpException getFunds: $errorMessage", e)
             Results.Error(e, errorMessage)
         } catch (e: Exception) {
+            Log.e("MutualFundAppRepository", "Unknown error getFunds: ${e.message}", e)
             Results.Error(e, "An unknown error occurred while fetching funds.")
         }
     }
@@ -354,12 +352,11 @@ class MockMutualFundAppRepository : MutualFundAppRepository {
     )
 
     override suspend fun getFundHoldings(): Results<List<MutualFundHolding>> {
-        // This method will be removed. Using the other getHoldings for consistency.
         delay(1500L) // Add a delay here to simulate network call
         return Results.Success(dummyHoldings)
     }
 
-    override suspend fun getHoldings(): Results<List<MutualFundHolding>> {
+    override suspend fun getHoldings(investorId: String, distributorId: String): Results<List<MutualFundHolding>> {
         delay(1500L) // Add a delay here to simulate network call
         return Results.Success(dummyHoldings)
     }
@@ -372,45 +369,13 @@ class MockMutualFundAppRepository : MutualFundAppRepository {
         )
     }
 
-    override suspend fun getPortfolioSummary(): Results<PortfolioSummary> {
+    override suspend fun getPortfolioSummary(investorId: String, distributorId: String): Results<PortfolioSummary> {
         delay(1500L) // Add a delay here to simulate network call
         return Results.Success(dummyPortfolioSummary)
     }
 
-    // This method has been removed as its functionality is now handled within the ViewModel.
-    // override suspend fun getAssetAllocation(): AssetAllocation {
-    //    delay(1500L) // Add a delay here to simulate network call
-    //    // Original logic for calculating asset allocation from dummyHoldings
-    //    val holdings = dummyHoldings
-    //    var equityValue = 0.0
-    //    var debtValue = 0.0
-    //    var hybridValue = 0.0
-    //    var totalCurrentValue = 0.0
-    //
-    //    for (holding in holdings) {
-    //        when (holding.fundType) {
-    //            "Equity" -> equityValue += holding.currentValue
-    //            "Debt" -> debtValue += holding.currentValue
-    //            "Hybrid" -> hybridValue += holding.currentValue
-    //        }
-    //        totalCurrentValue += holding.currentValue
-    //    }
-    //
-    //    val equityPercentage = if (totalCurrentValue != 0.0) (equityValue / totalCurrentValue) * 100 else 0.0
-    //    val debtPercentage = if (totalCurrentValue != 0.0) (debtValue / totalCurrentValue) * 100 else 0.0
-    //    val hybridPercentage = if (totalCurrentValue != 0.0) (hybridValue / totalCurrentValue) * 100 else 0.0
-    //
-    //    return AssetAllocation(
-    //        equityValue = equityValue,
-    //        equityPercentage = equityPercentage,
-    //        debtValue = debtValue,
-    //        debtPercentage = debtPercentage,
-    //        hybridValue = hybridValue,
-    //        hybridPercentage = hybridPercentage
-    //    )
-    // }
-
-    override suspend fun getTransactions(): Results<List<MutualFundTransaction>> {
+    override suspend fun getTransactions(investorId: String, distributorId: String): Results<List<MutualFundTransaction>> {
+        delay(1000L) // Simulate network delay
         return Results.Success(dummyTransactions)
     }
 

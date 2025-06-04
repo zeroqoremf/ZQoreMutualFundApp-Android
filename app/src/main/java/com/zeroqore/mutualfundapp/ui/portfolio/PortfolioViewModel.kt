@@ -7,24 +7,23 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.zeroqore.mutualfundapp.data.AssetAllocation
+import com.zeroqore.mutualfundapp.data.AssetAllocation // Keep if used for data models, even if not directly displayed
 import com.zeroqore.mutualfundapp.data.MutualFundAppRepository
-import com.zeroqore.mutualfundapp.data.MutualFundHolding // Import MutualFundHolding
-import com.zeroqore.mutualfundapp.data.PortfolioDisplayItem // Import the new sealed class
+import com.zeroqore.mutualfundapp.data.MutualFundHolding
+import com.zeroqore.mutualfundapp.data.PortfolioDisplayItem
 import com.zeroqore.mutualfundapp.data.PortfolioSummary
 import com.zeroqore.mutualfundapp.util.Results
+import com.zeroqore.mutualfundapp.data.AuthTokenManager // IMPORT AUTH TOKEN MANAGER
 import kotlinx.coroutines.launch
 
-class PortfolioViewModel(private val repository: MutualFundAppRepository) : ViewModel() {
+class PortfolioViewModel(
+    private val repository: MutualFundAppRepository,
+    private val authTokenManager: AuthTokenManager // ADDED: Inject AuthTokenManager
+) : ViewModel() {
 
     private val _portfolioSummary = MutableLiveData<PortfolioSummary>()
     val portfolioSummary: LiveData<PortfolioSummary> = _portfolioSummary
 
-    // REMOVE: This LiveData will no longer be directly observed by the Fragment for asset allocation
-    // private val _assetAllocation = MutableLiveData<AssetAllocation>()
-    // val assetAllocation: LiveData<AssetAllocation> = _assetAllocation
-
-    // ADDED: New LiveData for the expandable list of portfolio items
     private val _portfolioDisplayItems = MutableLiveData<List<PortfolioDisplayItem>>()
     val portfolioDisplayItems: LiveData<List<PortfolioDisplayItem>> = _portfolioDisplayItems
 
@@ -34,9 +33,7 @@ class PortfolioViewModel(private val repository: MutualFundAppRepository) : View
     private val _errorMessage = MutableLiveData<String?>()
     val errorMessage: LiveData<String?> = _errorMessage
 
-    // Store the raw holdings to re-process when expand/collapse state changes
     private var allHoldings: List<MutualFundHolding> = emptyList()
-    // Store the expansion state for each asset type
     private val expansionStates: MutableMap<String, Boolean> = mutableMapOf()
 
     init {
@@ -48,12 +45,24 @@ class PortfolioViewModel(private val repository: MutualFundAppRepository) : View
             _isLoading.postValue(true)
             _errorMessage.postValue(null)
 
-            // Fetch both summary and holdings concurrently
-            val summaryDeferred = repository.getPortfolioSummary()
-            val holdingsDeferred = repository.getHoldings() // Now explicitly fetching holdings
+            // NEW: Retrieve investorId and distributorId from AuthTokenManager
+            val investorId = authTokenManager.getInvestorId()
+            val distributorId = authTokenManager.getDistributorId()
 
-            val summaryResult = summaryDeferred
-            val holdingsResult = holdingsDeferred
+            if (investorId == null || distributorId == null) {
+                val errorMsg = "Authentication data (Investor ID or Distributor ID) missing. Please log in again."
+                _errorMessage.postValue(errorMsg)
+                _isLoading.postValue(false)
+                _portfolioSummary.postValue(PortfolioSummary(0.0, 0.0, 0.0, 0.0, "N/A"))
+                allHoldings = emptyList()
+                updatePortfolioDisplayItems()
+                Log.e("PortfolioViewModel", errorMsg)
+                return@launch // Stop execution if IDs are missing
+            }
+
+            // Fetch both summary and holdings concurrently, passing the IDs
+            val summaryResult = repository.getPortfolioSummary(investorId, distributorId)
+            val holdingsResult = repository.getHoldings(investorId, distributorId)
 
             when (summaryResult) {
                 is Results.Success -> {
@@ -66,7 +75,6 @@ class PortfolioViewModel(private val repository: MutualFundAppRepository) : View
                     Log.e("PortfolioViewModel", "Error loading portfolio summary: ${summaryResult.message}", summaryResult.exception)
                 }
                 is Results.Loading -> {
-                    // This state is typically handled by _isLoading.postValue(true)
                     Log.d("PortfolioViewModel", "Portfolio summary is in loading state.")
                 }
             }
@@ -74,7 +82,6 @@ class PortfolioViewModel(private val repository: MutualFundAppRepository) : View
             when (holdingsResult) {
                 is Results.Success -> {
                     allHoldings = holdingsResult.data // Store raw holdings
-                    // Ensure expansion states are initialized for new fund types
                     allHoldings.map { it.fundType }.distinct().forEach { fundType ->
                         expansionStates.putIfAbsent(fundType, false)
                     }
@@ -96,25 +103,22 @@ class PortfolioViewModel(private val repository: MutualFundAppRepository) : View
         }
     }
 
-    // New function to process raw holdings into display items
     private fun updatePortfolioDisplayItems() {
         val displayList = mutableListOf<PortfolioDisplayItem>()
-        val groupedHoldings = allHoldings.groupBy { it.fundType } // Group by fundType
+        val groupedHoldings = allHoldings.groupBy { it.fundType }
 
-        // Sort fund types for consistent display (e.g., Equity, Debt, Hybrid)
         val sortedFundTypes = groupedHoldings.keys.sortedWith(compareByDescending {
             when (it) {
                 "Equity" -> 3
                 "Hybrid" -> 2
                 "Debt" -> 1
-                else -> 0 // Other types would come first if not specified
+                else -> 0
             }
-        }).reversed() // Reverse to get Equity first, then Hybrid, then Debt, then Others
+        }).reversed()
 
         for (fundType in sortedFundTypes) {
             val fundsInType = groupedHoldings[fundType] ?: emptyList()
 
-            // Calculate summary for the header
             var typeTotalCurrentValue = 0.0
             var typeTotalInvestedValue = 0.0
 
@@ -144,7 +148,6 @@ class PortfolioViewModel(private val repository: MutualFundAppRepository) : View
             displayList.add(header)
 
             if (isExpanded) {
-                // Add individual fund items if expanded
                 fundsInType.forEach { holding ->
                     val absoluteReturn = holding.currentValue - holding.purchasePrice
                     val percentageReturn = if (holding.purchasePrice != 0.0) {
@@ -163,14 +166,12 @@ class PortfolioViewModel(private val repository: MutualFundAppRepository) : View
         _portfolioDisplayItems.postValue(displayList)
     }
 
-    // Function called from Fragment when a header is clicked
     fun toggleAssetTypeExpansion(fundType: String) {
         val currentExpandedState = expansionStates[fundType] ?: false
         expansionStates[fundType] = !currentExpandedState
-        updatePortfolioDisplayItems() // Regenerate the list to reflect the new state
+        updatePortfolioDisplayItems()
     }
 
-    // Function to expand/collapse all asset types (from screenshot)
     fun toggleAllAssetTypes(expand: Boolean) {
         expansionStates.keys.forEach { fundType ->
             expansionStates[fundType] = expand
@@ -178,19 +179,21 @@ class PortfolioViewModel(private val repository: MutualFundAppRepository) : View
         updatePortfolioDisplayItems()
     }
 
-
     fun refreshPortfolioData() {
         loadPortfolioData()
     }
 
     /**
-     * Factory for creating PortfolioViewModel with a constructor that takes a repository.
+     * Factory for creating PortfolioViewModel with a constructor that takes a repository and AuthTokenManager.
      */
-    class Factory(private val repository: MutualFundAppRepository) : ViewModelProvider.Factory {
+    class Factory(
+        private val repository: MutualFundAppRepository,
+        private val authTokenManager: AuthTokenManager // ADDED: AuthTokenManager to Factory
+    ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(PortfolioViewModel::class.java)) {
                 @Suppress("UNCHECKED_CAST")
-                return PortfolioViewModel(repository) as T
+                return PortfolioViewModel(repository, authTokenManager) as T // Pass authTokenManager
             }
             throw IllegalArgumentException("Unknown ViewModel class")
         }

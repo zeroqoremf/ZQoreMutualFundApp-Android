@@ -8,6 +8,7 @@ import com.zeroqore.mutualfundapp.data.Fund
 
 import retrofit2.http.GET
 import retrofit2.http.Path
+// import retrofit2.http.Query // Not strictly needed yet as we are using Path parameters
 
 interface MutualFundApiService {
 
@@ -21,8 +22,17 @@ interface MutualFundApiService {
         @Path("investorId") investorId: String
     ): List<MutualFundHolding>
 
+    // Keep the parameterized version for future use if your backend supports it
+    @GET("api/distributors/{distributorId}/investors/{investorId}/transactions")
+    suspend fun getTransactions(
+        @Path("distributorId") distributorId: String,
+        @Path("investorId") investorId: String
+    ): List<MutualFundTransaction>
+
+    // ADDED TEMPORARY: A simpler endpoint for transactions, assuming a transactions.json exists at root
     @GET("transactions.json")
-    suspend fun getTransactions(): List<MutualFundTransaction>
+    suspend fun getTransactionsSimplified(): List<MutualFundTransaction>
+
 
     // MODIFIED: Updated @GET path and added path parameters for PortfolioSummary
     @GET("api/distributors/{distributorId}/investors/{investorId}/portfolio-summary")

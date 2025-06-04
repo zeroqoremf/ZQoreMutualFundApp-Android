@@ -4,15 +4,19 @@ package com.zeroqore.mutualfundapp.ui.dashboard
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider // Import ViewModelProvider
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.zeroqore.mutualfundapp.data.MutualFundHolding
 import com.zeroqore.mutualfundapp.data.MutualFundAppRepository
 import com.zeroqore.mutualfundapp.util.Results
+import com.zeroqore.mutualfundapp.data.AuthTokenManager // ADDED: Import AuthTokenManager
 import kotlinx.coroutines.launch
 import android.util.Log
 
-class DashboardViewModel(private val repository: MutualFundAppRepository) : ViewModel() {
+class DashboardViewModel(
+    private val repository: MutualFundAppRepository,
+    private val authTokenManager: AuthTokenManager // ADDED: Inject AuthTokenManager
+) : ViewModel() {
 
     private val _fundHoldings = MutableLiveData<List<MutualFundHolding>>()
     val fundHoldings: LiveData<List<MutualFundHolding>> = _fundHoldings
@@ -30,9 +34,23 @@ class DashboardViewModel(private val repository: MutualFundAppRepository) : View
     private fun loadFundHoldings() {
         viewModelScope.launch {
             _isLoading.postValue(true)
-            _errorMessage.postValue(null) // Clear any previous error message
+            _errorMessage.postValue(null)
 
-            val result = repository.getHoldings()
+            // NEW: Retrieve investorId and distributorId from AuthTokenManager
+            val investorId = authTokenManager.getInvestorId()
+            val distributorId = authTokenManager.getDistributorId()
+
+            if (investorId == null || distributorId == null) {
+                val errorMsg = "Authentication data (Investor ID or Distributor ID) missing for Dashboard. Please log in again."
+                _errorMessage.postValue(errorMsg)
+                _isLoading.postValue(false)
+                _fundHoldings.postValue(emptyList())
+                Log.e("DashboardViewModel", errorMsg)
+                return@launch // Stop execution if IDs are missing
+            }
+
+            // MODIFIED: Pass investorId and distributorId to repository.getHoldings()
+            val result = repository.getHoldings(investorId, distributorId)
 
             when (result) {
                 is Results.Success -> {
@@ -57,13 +75,17 @@ class DashboardViewModel(private val repository: MutualFundAppRepository) : View
     }
 
     /**
-     * Factory for creating DashboardViewModel with a constructor that takes a repository.
+     * Factory for creating DashboardViewModel with a constructor that takes a repository and AuthTokenManager.
      */
-    class Factory(private val repository: MutualFundAppRepository) : ViewModelProvider.Factory {
+    class Factory(
+        private val repository: MutualFundAppRepository,
+        private val authTokenManager: AuthTokenManager // ADDED: AuthTokenManager to Factory constructor
+    ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(DashboardViewModel::class.java)) {
                 @Suppress("UNCHECKED_CAST")
-                return DashboardViewModel(repository) as T
+                // MODIFIED: Pass both repository and authTokenManager to DashboardViewModel
+                return DashboardViewModel(repository, authTokenManager) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class")
         }

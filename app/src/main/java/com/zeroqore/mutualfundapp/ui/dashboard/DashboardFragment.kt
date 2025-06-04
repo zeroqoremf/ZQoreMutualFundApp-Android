@@ -1,4 +1,3 @@
-// app/src/main/java/com/zeroqore.mutualfundapp/ui/dashboard/DashboardFragment.kt
 package com.zeroqore.mutualfundapp.ui.dashboard
 
 import android.graphics.Color
@@ -41,7 +40,11 @@ class DashboardFragment : Fragment() {
         val application = requireActivity().application as MutualFundApplication
         dashboardViewModel = ViewModelProvider(
             this,
-            DashboardViewModel.Factory(application.container.mutualFundRepository)
+            // MODIFIED: Pass both mutualFundRepository AND authTokenManager to the Factory
+            DashboardViewModel.Factory(
+                application.container.mutualFundRepository,
+                application.container.authTokenManager // ADDED: Pass AuthTokenManager
+            )
         ).get(DashboardViewModel::class.java)
 
         holdingsAdapter = MutualFundHoldingsAdapter { clickedHolding ->
@@ -116,8 +119,7 @@ class DashboardFragment : Fragment() {
         for (holding in holdings) {
             Log.d("PortfolioSummaryDebug", "Processing holding: ${holding.fundName}")
             Log.d("PortfolioSummaryDebug", "  purchasePrice: ${holding.purchasePrice}, units: ${holding.units}, currentValue: ${holding.currentValue}")
-            // FIX: Correctly calculate totalInvested. Assumes purchasePrice in JSON is the total invested per fund.
-            totalInvested += holding.purchasePrice // CHANGED from (holding.purchasePrice * holding.units)
+            totalInvested += holding.purchasePrice
             totalCurrentValue += holding.currentValue
         }
 
@@ -128,18 +130,14 @@ class DashboardFragment : Fragment() {
             0.0
         }
 
-        // --- Calculate Today's Gain/Loss (New Section) ---
         var todaysAbsoluteGainLoss = 0.0
-        // It's good practice to calculate today's % change based on previous day's total value,
-        // but for simplicity, we'll calculate it based on the previous day's NAV relative to current NAV.
-        // A more robust app might sum (units * previousDayNav) to get previous total value.
-        var totalPreviousDayValue = 0.0 // Added for more accurate daily % change calculation
+        var totalPreviousDayValue = 0.0
 
         for (holding in holdings) {
             val dailyGainLossPerUnit = holding.currentNav - holding.previousDayNav
             val dailyGainLossForFund = dailyGainLossPerUnit * holding.units
             todaysAbsoluteGainLoss += dailyGainLossForFund
-            totalPreviousDayValue += (holding.previousDayNav * holding.units) // Sum up previous day's total value
+            totalPreviousDayValue += (holding.previousDayNav * holding.units)
         }
 
         val todaysPercentageChange = if (totalPreviousDayValue != 0.0) {
@@ -147,8 +145,6 @@ class DashboardFragment : Fragment() {
         } else {
             0.0
         }
-        // --- End New Section ---
-
 
         Log.d("PortfolioSummaryDebug", "Calculated totalInvested: $totalInvested")
         Log.d("PortfolioSummaryDebug", "Calculated totalCurrentValue: $totalCurrentValue")
@@ -163,7 +159,6 @@ class DashboardFragment : Fragment() {
         binding.totalInvestedValueTextView.text = currencyFormatter.format(totalInvested)
         binding.totalCurrentValueTextView.text = currencyFormatter.format(totalCurrentValue)
 
-        // Updated these to use the new 'todaysAbsoluteGainLoss' and 'todaysPercentageChange'
         binding.todayAbsGainLossTextView.text = String.format(
             Locale.getDefault(),
             "%s%s",
@@ -175,7 +170,6 @@ class DashboardFragment : Fragment() {
         binding.todayPctChangeTextView.text = String.format(Locale.getDefault(), "%.2f%%", todaysPercentageChange)
         binding.todayPctChangeTextView.setTextColor(if (todaysAbsoluteGainLoss >= 0) Color.parseColor("#4CAF50") else Color.parseColor("#F44336"))
 
-        // These remain for overall gain/loss
         binding.totalOverallGainLossTextView.text = String.format(
             Locale.getDefault(),
             "%s%s",

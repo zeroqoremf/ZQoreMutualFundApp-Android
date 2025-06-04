@@ -6,11 +6,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.zeroqore.mutualfundapp.data.MutualFundAppRepository
 import com.zeroqore.mutualfundapp.data.MutualFundTransaction
-import com.zeroqore.mutualfundapp.util.Results // Import the Results sealed class
+import com.zeroqore.mutualfundapp.util.Results
+import com.zeroqore.mutualfundapp.data.AuthTokenManager // ADDED: Import AuthTokenManager
 import kotlinx.coroutines.launch
 import android.util.Log
 
-class TransactionsViewModel(private val repository: MutualFundAppRepository) : ViewModel() {
+class TransactionsViewModel(
+    private val repository: MutualFundAppRepository,
+    private val authTokenManager: AuthTokenManager // ADDED: Inject AuthTokenManager
+) : ViewModel() {
 
     private val _transactions = MutableLiveData<List<MutualFundTransaction>>()
     val transactions: LiveData<List<MutualFundTransaction>> = _transactions
@@ -30,10 +34,22 @@ class TransactionsViewModel(private val repository: MutualFundAppRepository) : V
         _errorMessage.value = null // Clear any previous errors
 
         viewModelScope.launch {
-            // Call the repository method, which now returns a Results sealed class
-            val result = repository.getTransactions()
+            // NEW: Retrieve investorId and distributorId from AuthTokenManager
+            val investorId = authTokenManager.getInvestorId()
+            val distributorId = authTokenManager.getDistributorId()
 
-            // Handle the different states of the Results sealed class
+            if (investorId == null || distributorId == null) {
+                val errorMsg = "Authentication data (Investor ID or Distributor ID) missing for Transactions. Please log in again."
+                _errorMessage.value = errorMsg
+                _isLoading.value = false
+                _transactions.value = emptyList()
+                Log.e("TransactionsViewModel", errorMsg)
+                return@launch // Stop execution if IDs are missing
+            }
+
+            // MODIFIED: Pass investorId and distributorId to repository.getTransactions()
+            val result = repository.getTransactions(investorId, distributorId)
+
             when (result) {
                 is Results.Success -> {
                     _transactions.value = result.data
@@ -45,9 +61,6 @@ class TransactionsViewModel(private val repository: MutualFundAppRepository) : V
                     Log.e("TransactionsViewModel", "Error loading transactions: ${result.message}", result.exception)
                 }
                 is Results.Loading -> {
-                    // This state is typically used for immediate UI feedback (e.g., showing a spinner)
-                    // before the actual data/error is returned.
-                    // The _isLoading.value = true at the start already handles initial loading state.
                     Log.d("TransactionsViewModel", "Repository reported loading state for transactions.")
                 }
             }

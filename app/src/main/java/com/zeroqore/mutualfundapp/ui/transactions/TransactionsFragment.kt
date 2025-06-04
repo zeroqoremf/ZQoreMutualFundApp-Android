@@ -6,24 +6,29 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels // NEW IMPORT
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider // NEW IMPORT
-import androidx.recyclerview.widget.LinearLayoutManager // NEW IMPORT
-import com.zeroqore.mutualfundapp.MutualFundApplication // NEW IMPORT
-import com.zeroqore.mutualfundapp.data.MutualFundAppRepository // Import the interface
-import com.zeroqore.mutualfundapp.databinding.FragmentTransactionsBinding // Make sure this import is correct
+import androidx.lifecycle.ViewModelProvider
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.zeroqore.mutualfundapp.MutualFundApplication
+import com.zeroqore.mutualfundapp.data.MutualFundAppRepository
+import com.zeroqore.mutualfundapp.databinding.FragmentTransactionsBinding
+import com.zeroqore.mutualfundapp.data.AuthTokenManager // ADDED: Import AuthTokenManager
 
 class TransactionsFragment : Fragment() {
 
     private var _binding: FragmentTransactionsBinding? = null
     private val binding get() = _binding!!
 
-    private lateinit var transactionsAdapter: TransactionsAdapter // Declare the adapter
+    private lateinit var transactionsAdapter: TransactionsAdapter
 
     // Initialize ViewModel using ViewModelProvider.Factory
     private val transactionsViewModel: TransactionsViewModel by viewModels {
-        TransactionsViewModelFactory((activity?.application as MutualFundApplication).container.mutualFundRepository)
+        // MODIFIED: Pass both mutualFundRepository AND authTokenManager to the Factory
+        TransactionsViewModelFactory(
+            (activity?.application as MutualFundApplication).container.mutualFundRepository,
+            (activity?.application as MutualFundApplication).container.authTokenManager // ADDED: Pass AuthTokenManager
+        )
     }
 
     override fun onCreateView(
@@ -42,23 +47,38 @@ class TransactionsFragment : Fragment() {
 
         // Observe transactions from the ViewModel
         transactionsViewModel.transactions.observe(viewLifecycleOwner) { transactionsList ->
-            // Initialize adapter if not already, or update its data
             if (!::transactionsAdapter.isInitialized) {
                 transactionsAdapter = TransactionsAdapter(transactionsList)
                 binding.transactionsRecyclerView.adapter = transactionsAdapter
             } else {
-                // If you want to update the list, you would need to add a setter in the adapter:
-                // transactionsAdapter.updateData(transactionsList)
-                // For now, if initialized once, this won't change
-                // Or, simply create a new adapter if data is small and changes infrequently
                 binding.transactionsRecyclerView.adapter = TransactionsAdapter(transactionsList)
             }
 
-            // If the list is empty, you could show a message
             binding.transactionsRecyclerView.visibility = if (transactionsList.isEmpty()) View.GONE else View.VISIBLE
-            // Optionally show a TextView here if list is empty
-            // binding.emptyTransactionsMessage.visibility = if (transactionsList.isEmpty()) View.VISIBLE else View.GONE
         }
+
+        // ADDED: Observe loading and error messages
+        transactionsViewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
+            binding.progressBarTransactions.visibility = if (isLoading) View.VISIBLE else View.GONE
+            // Optionally hide RecyclerView when loading if no data
+            if (isLoading && transactionsViewModel.transactions.value.isNullOrEmpty()) {
+                binding.transactionsRecyclerView.visibility = View.GONE
+                binding.emptyTransactionsMessage.visibility = View.GONE
+            }
+        }
+
+        transactionsViewModel.errorMessage.observe(viewLifecycleOwner) { errorMessage ->
+            if (!errorMessage.isNullOrBlank()) {
+                binding.emptyTransactionsMessage.text = errorMessage // Use empty message for error display
+                binding.emptyTransactionsMessage.visibility = View.VISIBLE
+                binding.transactionsRecyclerView.visibility = View.GONE
+            } else {
+                binding.emptyTransactionsMessage.visibility = View.GONE
+            }
+        }
+
+        // Initial load or refresh if needed (ViewModel already loads in init)
+        // You can add swipe-to-refresh or a FAB for refresh if desired
     }
 
     override fun onDestroyView() {
@@ -68,11 +88,16 @@ class TransactionsFragment : Fragment() {
 }
 
 // NEW: ViewModel Factory for TransactionsViewModel
-class TransactionsViewModelFactory(private val repository: MutualFundAppRepository) : ViewModelProvider.Factory {
+// MODIFIED: Now accepts AuthTokenManager
+class TransactionsViewModelFactory(
+    private val repository: MutualFundAppRepository,
+    private val authTokenManager: AuthTokenManager // ADDED: AuthTokenManager to Factory constructor
+) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(TransactionsViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return TransactionsViewModel(repository) as T
+            // MODIFIED: Pass both repository and authTokenManager to TransactionsViewModel
+            return TransactionsViewModel(repository, authTokenManager) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }
