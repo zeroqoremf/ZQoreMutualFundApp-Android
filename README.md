@@ -21,24 +21,25 @@ This is the Android mobile application for the ZQore Mutual Fund platform. It al
 ## Features
 
 Currently implemented features:
+- **User Authentication (Basic Login/Token Management):** Allows users to log in, and the application manages authentication tokens (Investor ID, Distributor ID) to fetch personalized data.
 - **Dashboard Overview:** Displays a comprehensive summary of the user's mutual fund portfolio, including total invested value, current value, and overall gain/loss.
 - **Fund Holdings List:** Presents a scrollable list of individual mutual fund holdings with their current value, units, and real-time gain/loss.
+- **Transaction History:** Displays a list of mutual fund transactions, including type (BUY/SELL/SWP), amount, units, and NAV at transaction.
 - **Dynamic UI States:** Handles and displays different UI states including:
     - **Loading Indicator:** Shows a progress bar while data is being fetched.
     - **Error Messages:** Displays user-friendly error messages if data fetching fails.
-    - **Empty State:** Informs the user when there are no holdings to display.
+    - **Empty State:** Informs the user when there are no holdings/transactions to display.
 - **Data Refresh Mechanisms:**
     - **Pull-to-Refresh:** Allows users to refresh holdings by pulling down on the list.
     - **Floating Action Button (FAB) Refresh:** Provides an explicit button for refreshing data.
 - **Fund Detail View:** Provides detailed information for individual mutual fund holdings (ISIN, Current Value, Units, NAVs, Last Updated).
-- **Bottom Navigation:** Seamless navigation between Dashboard, Portfolio (placeholder), Transactions (placeholder), and Menu (placeholder).
+- **Bottom Navigation:** Seamless navigation between Dashboard, Portfolio (placeholder), Transactions, and Menu (placeholder).
 
 Planned features include:
-- User Authentication (Login/Logout)
 - Real-time NAV updates
-- Transaction history
 - Portfolio performance charts
 - Investment/Redemption functionalities
+- Enhanced Menu functionality
 
 ## Architecture
 
@@ -58,7 +59,7 @@ The application is built following modern Android development best practices.
     - **View Binding:** For safe and convenient interaction with UI components.
     - **ListAdapter & DiffUtil:** For efficient updates of RecyclerView lists.
 - **Material Design 3:** For modern UI components.
-- **Retrofit / Ktor Client:** (Placeholder for future network calls)
+- **Retrofit:** For making type-safe HTTP requests to RESTful APIs.
 - **Coroutines:** For asynchronous programming and managing long-running tasks.
 - **Git:** Version control.
 - **GitHub:** Repository hosting (zeroqoremf organization).
@@ -82,19 +83,24 @@ To get a local copy up and running, follow these simple steps.
 
 ## Usage
 
-* Upon launching the app, you will be presented with a Dashboard displaying a summary of mutual fund holdings and a list of individual holdings.
+* Upon launching the app, you will first interact with the login screen (if implemented to be the first screen) to provide credentials.
+* After successful login, you will be presented with a Dashboard displaying a summary of mutual fund holdings and a list of individual holdings.
 * Observe the loading indicator during data fetches, and potential error/empty messages if data is unavailable.
 * Refresh the data using the pull-to-refresh gesture or by tapping the floating action button.
 * Tap on any fund holding to view its detailed information on the Fund Detail screen.
-* Use the bottom navigation bar to switch between Dashboard, Portfolio, Transactions, and Menu. (Note: Portfolio, Transactions, and Menu currently display placeholder content).
+* Use the bottom navigation bar to switch between Dashboard, Portfolio, Transactions, and Menu. (Note: Portfolio and Menu currently display placeholder content).
 
 ## Roadmap
 
-* Implement secure Login/User Authentication.
-* Integrate with backend microservices for real-time data.
-* Develop full functionality for Portfolio, Transactions, and Menu sections.
-* Add data persistence.
-* Implement unit and integration tests.
+* **Finalize Transactions API Endpoint:** The current implementation uses a temporary API path for transactions. This needs to be aligned with the backend's final parameterized endpoint.
+* **Implement secure User Authentication:** Enhance the existing login/token management for production-grade security.
+* **Integrate with backend microservices for real-time data:** Explore further API integrations or real-time updates.
+* **Develop full functionality for Portfolio and Menu sections.**
+* **Add data persistence.**
+* **Implement comprehensive unit, integration, and UI tests.**
+* Implement real-time NAV updates.
+* Develop portfolio performance charts.
+* Add investment/redemption functionalities.
 
 ## Contributing
 
