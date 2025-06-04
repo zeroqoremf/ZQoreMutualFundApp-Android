@@ -14,6 +14,7 @@ interface MutualFundAppRepository {
     // MODIFIED: Updated signature to reflect changes in MutualFundApiService
     suspend fun getHoldings(): Results<List<MutualFundHolding>> // Interface method remains the same
     suspend fun getMenuItems(): List<MenuItem>
+    // MODIFIED: Interface method remains the same, but implementation will now use IDs
     suspend fun getPortfolioSummary(): Results<PortfolioSummary>
     // Asset allocation will still operate on the Results of holdings
     suspend fun getAssetAllocation(): AssetAllocation
@@ -93,8 +94,19 @@ class NetworkMutualFundAppRepository(
 
     override suspend fun getPortfolioSummary(): Results<PortfolioSummary> {
         return try {
-            // If portfolio summary also needs IDs, you'd add similar logic here
-            val summary = apiService.getPortfolioSummary()
+            // ADDED: Retrieve investorId and distributorId
+            val investorId = authTokenManager.getInvestorId()
+            val distributorId = authTokenManager.getDistributorId()
+
+            if (investorId == null || distributorId == null) {
+                return Results.Error(
+                    IllegalStateException("Investor ID or Distributor ID not found."),
+                    "User not logged in or authentication data missing. Please log in again."
+                )
+            }
+
+            // MODIFIED: Pass both distributorId and investorId to the API service
+            val summary = apiService.getPortfolioSummary(distributorId, investorId)
             Results.Success(summary)
         } catch (e: IOException) {
             Results.Error(e, "Please check your internet connection for portfolio summary.")

@@ -65,10 +65,16 @@ class AppContainer(
                 println("AssetReadingInterceptor: Matched dynamic holdings path. Serving holdings.json")
                 "holdings.json"
             }
-            // Existing rules:
-            url.endsWith("holdings.json") -> "holdings.json" // Keep if other parts still use this direct path
+            // ADDED: Handle dynamic portfolio-summary path for mock data
+            url.contains("/api/distributors/") && url.contains("/investors/") && url.endsWith("/portfolio-summary") -> {
+                println("AssetReadingInterceptor: Matched dynamic portfolio summary path. Serving portfolio_summary.json")
+                "portfolio_summary.json"
+            }
+            // Existing rules (can be kept if other parts of the app still use these direct paths,
+            // but the dynamic rules handle the API calls more robustly)
+            url.endsWith("holdings.json") -> "holdings.json"
             url.endsWith("transactions.json") -> "transactions.json"
-            url.endsWith("portfolio_summary.json") -> "portfolio_summary.json"
+            url.endsWith("portfolio_summary.json") -> "portfolio_summary.json" // This specific rule might become redundant if all calls are dynamic
             url.endsWith("funds.json") -> "funds.json"
 
             // Check for dynamic paths like fund_details/{fundId}.json
