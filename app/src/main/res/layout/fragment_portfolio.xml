@@ -115,6 +115,7 @@
                             android:paddingBottom="4dp">
 
                             <TextView
+                                android:id="@+id/overallGainLossLabelTextView"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
@@ -172,13 +173,38 @@
                         android:orientation="vertical"
                         android:padding="16dp">
 
-                        <TextView
-                            android:layout_width="wrap_content"
+                        <LinearLayout
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Asset Allocation by Fund Type"
-                            android:textStyle="bold"
-                            android:textSize="18sp"
-                            android:textColor="?android:attr/textColorPrimary" />
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:layout_marginBottom="8dp">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Asset Allocation by Fund Type"
+                                android:textStyle="bold"
+                                android:textSize="18sp"
+                                android:textColor="?android:attr/textColorPrimary" />
+
+                            <TextView
+                                android:id="@+id/expandCollapseAllTextView"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Expand All"
+                                android:textColor="?attr/colorPrimary"
+                                android:textStyle="bold"
+                                android:textSize="14sp"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:background="?attr/selectableItemBackgroundBorderless"
+                                android:paddingStart="8dp"
+                                android:paddingEnd="8dp"
+                                tools:text="Expand All" />
+                        </LinearLayout>
+
 
                         <View
                             android:layout_width="match_parent"
@@ -187,80 +213,13 @@
                             android:layout_marginTop="8dp"
                             android:layout_marginBottom="8dp" />
 
-                        <LinearLayout
-                            android:id="@+id/equityAllocationRow"
+                        <androidx.recyclerview.widget.RecyclerView
+                            android:id="@+id/assetAllocationRecyclerView"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:paddingTop="4dp"
-                            android:paddingBottom="4dp">
-
-                            <TextView
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="Equity:"
-                                android:textSize="16sp" />
-
-                            <TextView
-                                android:id="@+id/equityValueTextView"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:textAlignment="viewEnd"
-                                android:textSize="16sp"
-                                tools:text="$80,000.00 (50.00%)" />
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:id="@+id/debtAllocationRow"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:paddingTop="4dp"
-                            android:paddingBottom="4dp">
-
-                            <TextView
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="Debt:"
-                                android:textSize="16sp" />
-
-                            <TextView
-                                android:id="@+id/debtValueTextView"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:textAlignment="viewEnd"
-                                android:textSize="16sp"
-                                tools:text="$30,000.00 (20.00%)" />
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:id="@+id/hybridAllocationRow"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:paddingTop="4dp"
-                            android:paddingBottom="4dp">
-
-                            <TextView
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="Hybrid:"
-                                android:textSize="16sp" />
-
-                            <TextView
-                                android:id="@+id/hybridValueTextView"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:textAlignment="viewEnd"
-                                android:textSize="16sp"
-                                tools:text="$40,000.00 (30.00%)" />
-                        </LinearLayout>
+                            android:nestedScrollingEnabled="false"
+                            tools:itemCount="5"
+                            tools:listitem="@layout/item_asset_type_header" />
 
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>

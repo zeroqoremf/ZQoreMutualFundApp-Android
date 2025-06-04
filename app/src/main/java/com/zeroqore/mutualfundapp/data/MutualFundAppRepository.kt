@@ -12,12 +12,12 @@ interface MutualFundAppRepository {
     // Keep for now, but consider removing later as it's deprecated in API service
     suspend fun getFundHoldings(): Results<List<MutualFundHolding>>
     // MODIFIED: Updated signature to reflect changes in MutualFundApiService
-    suspend fun getHoldings(): Results<List<MutualFundHolding>> // Interface method remains the same
+    suspend fun getHoldings(): Results<List<MutualFundHolding>>
     suspend fun getMenuItems(): List<MenuItem>
     // MODIFIED: Interface method remains the same, but implementation will now use IDs
     suspend fun getPortfolioSummary(): Results<PortfolioSummary>
-    // Asset allocation will still operate on the Results of holdings
-    suspend fun getAssetAllocation(): AssetAllocation
+    // REMOVED: getAssetAllocation() is no longer needed as calculation is handled by ViewModel
+    // suspend fun getAssetAllocation(): AssetAllocation
     suspend fun getTransactions(): Results<List<MutualFundTransaction>>
     suspend fun getFundDetails(fundId: String): Results<MutualFundHolding>
     suspend fun getFunds(): Results<List<Fund>>
@@ -123,47 +123,8 @@ class NetworkMutualFundAppRepository(
         }
     }
 
-    override suspend fun getAssetAllocation(): AssetAllocation {
-        val holdingsResult = getHoldings()
-
-        return when (holdingsResult) {
-            is Results.Success -> {
-                val holdings = holdingsResult.data
-                var equityValue = 0.0
-                var debtValue = 0.0
-                var hybridValue = 0.0
-                var totalCurrentValue = 0.0
-
-                for (holding in holdings) {
-                    when (holding.fundType) {
-                        "Equity" -> equityValue += holding.currentValue
-                        "Debt" -> debtValue += holding.currentValue
-                        "Hybrid" -> hybridValue += holding.currentValue
-                    }
-                    totalCurrentValue += holding.currentValue
-                }
-
-                val equityPercentage = if (totalCurrentValue != 0.0) (equityValue / totalCurrentValue) * 100 else 0.0
-                val debtPercentage = if (totalCurrentValue != 0.0) (debtValue / totalCurrentValue) * 100 else 0.0
-                val hybridPercentage = if (totalCurrentValue != 0.0) (hybridValue / totalCurrentValue) * 100 else 0.0
-
-                AssetAllocation(
-                    equityValue = equityValue,
-                    equityPercentage = equityPercentage,
-                    debtValue = debtValue,
-                    debtPercentage = debtPercentage,
-                    hybridValue = hybridValue,
-                    hybridPercentage = hybridPercentage
-                )
-            }
-            is Results.Error -> {
-                AssetAllocation(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-            }
-            Results.Loading -> {
-                AssetAllocation(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-            }
-        }
-    }
+    // This method has been removed as its functionality is now handled within the ViewModel.
+    // override suspend fun getAssetAllocation(): AssetAllocation { /* ... */ }
 
     override suspend fun getTransactions(): Results<List<MutualFundTransaction>> {
         return try {
@@ -416,45 +377,38 @@ class MockMutualFundAppRepository : MutualFundAppRepository {
         return Results.Success(dummyPortfolioSummary)
     }
 
-    override suspend fun getAssetAllocation(): AssetAllocation {
-        val holdingsResult = getHoldings()
-
-        return when (holdingsResult) {
-            is Results.Success -> {
-                val holdings = holdingsResult.data
-                var equityValue = 0.0
-                var debtValue = 0.0
-                var hybridValue = 0.0
-                var totalCurrentValue = 0.0
-
-                for (holding in holdings) {
-                    when (holding.fundType) {
-                        "Equity" -> equityValue += holding.currentValue
-                        "Debt" -> debtValue += holding.currentValue
-                        "Hybrid" -> hybridValue += holding.currentValue
-                    }
-                    totalCurrentValue += holding.currentValue
-                }
-
-                val equityPercentage = if (totalCurrentValue != 0.0) (equityValue / totalCurrentValue) * 100 else 0.0
-                val debtPercentage = if (totalCurrentValue != 0.0) (debtValue / totalCurrentValue) * 100 else 0.0
-                val hybridPercentage = if (totalCurrentValue != 0.0) (hybridValue / totalCurrentValue) * 100 else 0.0
-
-                AssetAllocation(
-                    equityValue = equityValue,
-                    equityPercentage = equityPercentage,
-                    debtValue = debtValue,
-                    debtPercentage = debtPercentage,
-                    hybridValue = hybridValue,
-                    hybridPercentage = hybridPercentage
-                )
-            }
-            is Results.Error -> {
-                AssetAllocation(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-            }
-            Results.Loading -> AssetAllocation(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-        }
-    }
+    // This method has been removed as its functionality is now handled within the ViewModel.
+    // override suspend fun getAssetAllocation(): AssetAllocation {
+    //    delay(1500L) // Add a delay here to simulate network call
+    //    // Original logic for calculating asset allocation from dummyHoldings
+    //    val holdings = dummyHoldings
+    //    var equityValue = 0.0
+    //    var debtValue = 0.0
+    //    var hybridValue = 0.0
+    //    var totalCurrentValue = 0.0
+    //
+    //    for (holding in holdings) {
+    //        when (holding.fundType) {
+    //            "Equity" -> equityValue += holding.currentValue
+    //            "Debt" -> debtValue += holding.currentValue
+    //            "Hybrid" -> hybridValue += holding.currentValue
+    //        }
+    //        totalCurrentValue += holding.currentValue
+    //    }
+    //
+    //    val equityPercentage = if (totalCurrentValue != 0.0) (equityValue / totalCurrentValue) * 100 else 0.0
+    //    val debtPercentage = if (totalCurrentValue != 0.0) (debtValue / totalCurrentValue) * 100 else 0.0
+    //    val hybridPercentage = if (totalCurrentValue != 0.0) (hybridValue / totalCurrentValue) * 100 else 0.0
+    //
+    //    return AssetAllocation(
+    //        equityValue = equityValue,
+    //        equityPercentage = equityPercentage,
+    //        debtValue = debtValue,
+    //        debtPercentage = debtPercentage,
+    //        hybridValue = hybridValue,
+    //        hybridPercentage = hybridPercentage
+    //    )
+    // }
 
     override suspend fun getTransactions(): Results<List<MutualFundTransaction>> {
         return Results.Success(dummyTransactions)

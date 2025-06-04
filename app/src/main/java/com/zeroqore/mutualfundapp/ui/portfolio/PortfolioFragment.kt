@@ -8,11 +8,12 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-// REMOVED: import androidx.fragment.app.viewModels // No longer needed for explicit ViewModelProvider
-import androidx.lifecycle.ViewModelProvider // Added this import
+import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.LinearLayoutManager // Import for RecyclerView
 import com.zeroqore.mutualfundapp.MutualFundApplication
-import com.zeroqore.mutualfundapp.data.AssetAllocation
+import com.zeroqore.mutualfundapp.data.AssetAllocation // Keep this import if you still use it elsewhere, though not directly observed here anymore
+import com.zeroqore.mutualfundapp.data.PortfolioDisplayItem
 import com.zeroqore.mutualfundapp.data.PortfolioSummary
 import com.zeroqore.mutualfundapp.databinding.FragmentPortfolioBinding
 import java.text.NumberFormat
@@ -23,8 +24,8 @@ class PortfolioFragment : Fragment() {
     private var _binding: FragmentPortfolioBinding? = null
     private val binding get() = _binding!!
 
-    // CHANGED: Initialize ViewModel using explicit ViewModelProvider later
     private lateinit var portfolioViewModel: PortfolioViewModel
+    private lateinit var assetAllocationAdapter: AssetAllocationAdapter // ADDED: Adapter instance
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -37,12 +38,22 @@ class PortfolioFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // ADDED: Initialize ViewModel here using the custom Factory from your Application class
         val application = requireActivity().application as MutualFundApplication
         portfolioViewModel = ViewModelProvider(
             this,
             PortfolioViewModel.Factory(application.container.mutualFundRepository)
         ).get(PortfolioViewModel::class.java)
+
+        // ADDED: Setup RecyclerView and Adapter
+        assetAllocationAdapter = AssetAllocationAdapter { fundType ->
+            // Callback from adapter when an asset type header is clicked
+            portfolioViewModel.toggleAssetTypeExpansion(fundType)
+        }
+        binding.assetAllocationRecyclerView.apply {
+            layoutManager = LinearLayoutManager(context)
+            adapter = assetAllocationAdapter
+            setHasFixedSize(true) // For performance if items won't change size
+        }
 
         portfolioViewModel.portfolioSummary.observe(viewLifecycleOwner) { summary ->
             if (summary != null) {
@@ -52,20 +63,38 @@ class PortfolioFragment : Fragment() {
             }
         }
 
-        portfolioViewModel.assetAllocation.observe(viewLifecycleOwner) { allocation ->
-            if (allocation != null) {
-                updateAssetAllocationUI(allocation)
+        // REMOVED: No longer observing assetAllocation directly
+        // portfolioViewModel.assetAllocation.observe(viewLifecycleOwner) { allocation ->
+        //     if (allocation != null) {
+        //         updateAssetAllocationUI(allocation) // This function will be removed or repurposed
+        //     } else {
+        //         Log.w("PortfolioFragment", "AssetAllocation is null, not updating UI.")
+        //     }
+        // }
+
+        // ADDED: Observe the new portfolioDisplayItems LiveData
+        portfolioViewModel.portfolioDisplayItems.observe(viewLifecycleOwner) { items ->
+            if (items != null) {
+                assetAllocationAdapter.submitList(items)
+                Log.d("PortfolioFragment", "PortfolioDisplayItems updated. Count: ${items.size}")
+                // Update "Expand All" text based on current state (optional, can be more robust)
+                val allExpanded = items.filterIsInstance<PortfolioDisplayItem.AssetTypeHeader>().all { it.isExpanded }
+                binding.expandCollapseAllTextView.text = if (allExpanded) "Collapse All" else "Expand All"
+
             } else {
-                Log.w("PortfolioFragment", "AssetAllocation is null, not updating UI.")
+                Log.w("PortfolioFragment", "PortfolioDisplayItems is null, not updating RecyclerView.")
+                assetAllocationAdapter.submitList(emptyList())
             }
         }
+
 
         portfolioViewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
             binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
             binding.swipeRefreshLayout.isRefreshing = isLoading
 
+            // More nuanced visibility control: show content if not loading OR if data is already present
             binding.portfolioContentGroup.visibility =
-                if (isLoading && portfolioViewModel.portfolioSummary.value == null) View.GONE else View.VISIBLE
+                if (isLoading && (portfolioViewModel.portfolioSummary.value == null && portfolioViewModel.portfolioDisplayItems.value.isNullOrEmpty())) View.GONE else View.VISIBLE
 
             binding.refreshFab.isEnabled = !isLoading
         }
@@ -74,7 +103,8 @@ class PortfolioFragment : Fragment() {
             if (!errorMessage.isNullOrBlank()) {
                 binding.errorMessageTextView.text = errorMessage
                 binding.errorMessageTextView.visibility = View.VISIBLE
-                if (portfolioViewModel.portfolioSummary.value == null) {
+                // Hide content if error and no data is available
+                if (portfolioViewModel.portfolioSummary.value == null && portfolioViewModel.portfolioDisplayItems.value.isNullOrEmpty()) {
                     binding.portfolioContentGroup.visibility = View.GONE
                 }
             } else {
@@ -89,6 +119,16 @@ class PortfolioFragment : Fragment() {
         binding.refreshFab.setOnClickListener {
             portfolioViewModel.refreshPortfolioData()
         }
+
+        // ADDED: Click listener for Expand All / Collapse All
+        binding.expandCollapseAllTextView.setOnClickListener {
+            val currentText = binding.expandCollapseAllTextView.text.toString()
+            if (currentText == "Expand All") {
+                portfolioViewModel.toggleAllAssetTypes(true)
+            } else {
+                portfolioViewModel.toggleAllAssetTypes(false)
+            }
+        }
     }
 
     private fun updatePortfolioSummaryUI(summary: PortfolioSummary) {
@@ -101,10 +141,10 @@ class PortfolioFragment : Fragment() {
         val currentValueText = currencyFormatter.format(summary.currentValue)
         val gainLossText = String.format(
             Locale.getDefault(),
-            "%s%s (%.2f%%)",
+            "%s%s (%s)", // Use %s for formatted currency and percentage
             if (summary.overallGainLoss >= 0) "+" else "",
             currencyFormatter.format(summary.overallGainLoss),
-            summary.overallGainLossPercentage
+            percentFormatter.format(summary.overallGainLossPercentage / 100.0) // Convert percentage to decimal for formatter
         )
 
         Log.d("PortfolioFragment", "Updating Summary UI:")
@@ -121,40 +161,10 @@ class PortfolioFragment : Fragment() {
         binding.lastUpdatedTextView.text = "Last Updated: ${summary.lastUpdated}"
     }
 
-    private fun updateAssetAllocationUI(allocation: AssetAllocation) {
-        val currencyFormatter = NumberFormat.getCurrencyInstance(Locale.getDefault())
-        val percentFormatter = NumberFormat.getPercentInstance(Locale.getDefault())
-        percentFormatter.minimumFractionDigits = 2
-        percentFormatter.maximumFractionDigits = 2
-
-        val equityValText = String.format(
-            Locale.getDefault(),
-            "%s (%s)",
-            currencyFormatter.format(allocation.equityValue),
-            percentFormatter.format(allocation.equityPercentage / 100.0)
-        )
-        val debtValText = String.format(
-            Locale.getDefault(),
-            "%s (%s)",
-            currencyFormatter.format(allocation.debtValue),
-            percentFormatter.format(allocation.debtPercentage / 100.0)
-        )
-        val hybridValText = String.format(
-            Locale.getDefault(),
-            "%s (%s)",
-            currencyFormatter.format(allocation.hybridValue),
-            percentFormatter.format(allocation.hybridPercentage / 100.0)
-        )
-
-        Log.d("PortfolioFragment", "Updating Asset Allocation UI:")
-        Log.d("PortfolioFragment", "Equity: $equityValText")
-        Log.d("PortfolioFragment", "Debt: $debtValText")
-        Log.d("PortfolioFragment", "Hybrid: $hybridValText")
-
-        binding.equityValueTextView.text = equityValText
-        binding.debtValueTextView.text = debtValText
-        binding.hybridValueTextView.text = hybridValText
-    }
+    // REMOVED: This function is no longer needed as asset allocation is handled by RecyclerView
+    // private fun updateAssetAllocationUI(allocation: AssetAllocation) {
+    //     // ... (content removed)
+    // }
 
     override fun onDestroyView() {
         super.onDestroyView()

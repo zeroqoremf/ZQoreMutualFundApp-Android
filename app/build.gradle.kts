@@ -62,6 +62,10 @@ dependencies {
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
 
+    // ADDED: Explicit RecyclerView dependency to ensure a modern version for bindingAdapterPosition
+    // Using 1.3.2 which is a stable and recent version that supports bindingAdapterPosition
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
+
     // AndroidX Navigation Component
     implementation(libs.androidx.navigation.fragment.ktx)
     implementation(libs.androidx.navigation.ui.ktx)
