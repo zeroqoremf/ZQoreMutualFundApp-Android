@@ -19,7 +19,7 @@ import java.io.IOException
 // - AssetAllocation.kt
 // - MutualFundTransaction.kt
 // - MenuItem.kt
-// - Fund.kt // ADDED: Reminder for the new Fund.kt file
+// - Fund.kt
 
 // Import the repository interface and its concrete implementations
 import com.zeroqore.mutualfundapp.network.MutualFundApiService
@@ -27,10 +27,10 @@ import com.zeroqore.mutualfundapp.network.MutualFundApiService
 // ADDED IMPORTS FOR LOGIN MODULE
 import com.zeroqore.mutualfundapp.data.auth.LoginRepository
 import com.zeroqore.mutualfundapp.data.auth.NetworkLoginRepository
-import com.zeroqore.mutualfundapp.data.auth.LocalLoginRepository // ADDED THIS IMPORT
+import com.zeroqore.mutualfundapp.data.auth.LocalLoginRepository
 import com.zeroqore.mutualfundapp.network.AuthService
 import com.zeroqore.mutualfundapp.network.RetrofitClient
-
+import com.zeroqore.mutualfundapp.network.AuthInterceptor
 
 // UPDATED: AppContainer now takes base URL and mock flag from BuildConfig
 class AppContainer(
@@ -60,21 +60,23 @@ class AppContainer(
         val pathSegments = request.url.pathSegments
 
         val assetFileName: String? = when {
-            // Check for specific exact filenames first
-            url.endsWith("holdings.json") -> "holdings.json"
+            // NEW RULE: Handle dynamic holdings path for mock data
+            url.contains("/api/distributors/") && url.contains("/investors/") && url.endsWith("/holdings") -> {
+                println("AssetReadingInterceptor: Matched dynamic holdings path. Serving holdings.json")
+                "holdings.json"
+            }
+            // Existing rules:
+            url.endsWith("holdings.json") -> "holdings.json" // Keep if other parts still use this direct path
             url.endsWith("transactions.json") -> "transactions.json"
             url.endsWith("portfolio_summary.json") -> "portfolio_summary.json"
-            url.endsWith("funds.json") -> "funds.json" // ADDED: Mapping for funds.json
-            // If you have a mock login response in assets, you could map it here:
-            // url.endsWith("/api/auth/login") -> "mock_login_success.json" // Example for mock API response
+            url.endsWith("funds.json") -> "funds.json"
 
             // Check for dynamic paths like fund_details/{fundId}.json
             pathSegments.size >= 2 && pathSegments[pathSegments.size - 2] == "fund_details" ->
                 "fund_details_${pathSegments.last()}"
 
             // If a previous asset was for "mutual_fund_holdings.json" but now it's "holdings.json"
-            // You can keep this if you still have old API calls using that path, otherwise remove.
-            url.endsWith("mutual_fund_holdings.json") -> "holdings.json" // Consider removing if not used
+            url.endsWith("mutual_fund_holdings.json") -> "holdings.json"
 
             else -> null
         }
@@ -109,21 +111,31 @@ class AppContainer(
         }
     }
 
-    // UPDATED: okHttpClient now conditionally adds assetReadingInterceptor
+    // AuthTokenManager instance
+    val authTokenManager: AuthTokenManager by lazy {
+        AuthTokenManager(context)
+    }
+
+    // AuthInterceptor instance
+    private val authInterceptor: AuthInterceptor by lazy {
+        AuthInterceptor(authTokenManager)
+    }
+
+    // okHttpClient now conditionally adds assetReadingInterceptor AND AuthInterceptor
     private val okHttpClient = OkHttpClient.Builder()
         .addInterceptor(loggingInterceptor)
         .apply {
-            if (useMockAssetInterceptor) { // ADDED: Conditionally add interceptor
+            if (useMockAssetInterceptor) {
                 addInterceptor(assetReadingInterceptor)
+            } else {
+                addInterceptor(authInterceptor)
             }
-            // Add any real API interceptors (e.g., AuthInterceptor) here if not using mock
-            // else { addInterceptor(AuthInterceptor()) }
         }
         .build()
 
     private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
-            .baseUrl(baseUrl) // Uses the BASE_URL passed in constructor
+            .baseUrl(baseUrl)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
@@ -133,9 +145,7 @@ class AppContainer(
         retrofit.create(MutualFundApiService::class.java)
     }
 
-    // ADDED: AuthService instance from RetrofitClient for login
-    // Note: If RetrofitClient creates AuthService internally without needing 'retrofit' directly,
-    // this line might remain as is. Otherwise, you'd create it via 'retrofit.create(AuthService::class.java)'
+    // AuthService instance from RetrofitClient for login
     private val authService: AuthService by lazy {
         RetrofitClient.authService
     }
@@ -143,30 +153,16 @@ class AppContainer(
     // UPDATED: mutualFundRepository now conditionally provides Network or Mock repository
     val mutualFundRepository: MutualFundAppRepository by lazy {
         if (useMockAssetInterceptor) {
-            // When using mock assets, we still use the NetworkMutualFundAppRepository
-            // because the AssetReadingInterceptor will handle the mock responses.
-            // If you wanted a completely separate, hardcoded mock path for the repository,
-            // you could use MockMutualFundAppRepository here, but it requires aligning its dummy data.
-            // For now, let's assume USE_MOCK_ASSET_INTERCEPTOR means 'mock via assets'.
-            NetworkMutualFundAppRepository(mutualFundApiService)
+            // MODIFIED: Pass authTokenManager to NetworkMutualFundAppRepository
+            NetworkMutualFundAppRepository(mutualFundApiService, authTokenManager) // Pass authTokenManager here too
         } else {
-            // For real API calls, provide the network-backed repository
-            NetworkMutualFundAppRepository(mutualFundApiService)
+            NetworkMutualFundAppRepository(mutualFundApiService, authTokenManager) // And here for real API
         }
-        // If you had a different flag for 'fully hardcoded mock repo' vs 'network with asset interceptor',
-        // you would put that logic here. E.g.,
-        // if (useFullHardcodedMockRepo) {
-        //     MockMutualFundAppRepository()
-        // } else if (useMockAssetInterceptor) {
-        //     NetworkMutualFundAppRepository(mutualFundApiService) // Interceptor handles mock
-        // } else {
-        //     NetworkMutualFundAppRepository(mutualFundApiService) // Real network
-        // }
     }
 
-    // MODIFIED: LoginRepository instance now conditionally uses Local or Network repository
+    // LoginRepository instance now conditionally uses Local or Network repository
     val loginRepository: LoginRepository by lazy {
-        if (useMockAssetInterceptor) { // Use the same flag to enable local login
+        if (useMockAssetInterceptor) {
             LocalLoginRepository()
         } else {
             NetworkLoginRepository(authService)

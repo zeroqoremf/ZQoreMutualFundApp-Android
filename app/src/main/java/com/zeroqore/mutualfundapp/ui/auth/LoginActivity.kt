@@ -1,21 +1,22 @@
+// app/src/main/java/com/zeroqore/mutualfundapp/ui/auth/LoginActivity.kt
 package com.zeroqore.mutualfundapp.ui.auth
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.View // Import View for visibility
-import android.widget.ProgressBar // Import ProgressBar
+import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.ViewModelProvider // Import ViewModelProvider
+import androidx.lifecycle.ViewModelProvider
 import com.zeroqore.mutualfundapp.MainActivity
-import com.zeroqore.mutualfundapp.MutualFundApplication // Import your Application class
+import com.zeroqore.mutualfundapp.MutualFundApplication
 import com.zeroqore.mutualfundapp.databinding.ActivityLoginBinding
-import com.zeroqore.mutualfundapp.data.auth.LoginRequest // Import LoginRequest
+import com.zeroqore.mutualfundapp.ui.login.LoginViewModel
+import com.zeroqore.mutualfundapp.util.Results // Import your custom Results sealed class
 
 class LoginActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityLoginBinding
-    private lateinit var viewModel: LoginViewModel // Declare ViewModel
+    private lateinit var viewModel: LoginViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -26,59 +27,55 @@ class LoginActivity : AppCompatActivity() {
         // Get the application instance to access AppContainer
         val application = application as MutualFundApplication
         val loginRepository = application.container.loginRepository
+        val authTokenManager = application.container.authTokenManager // GET AUTH TOKEN MANAGER
 
         // Initialize ViewModel using the custom Factory
-        viewModel = ViewModelProvider(this, LoginViewModel.Factory(loginRepository))
+        // MODIFIED: Pass both loginRepository and authTokenManager
+        viewModel = ViewModelProvider(this, LoginViewModel.Factory(loginRepository, authTokenManager))
             .get(LoginViewModel::class.java)
 
-        // Removed explicit local val declarations, using binding directly
-        val progressBar: ProgressBar? = findViewById(com.zeroqore.mutualfundapp.R.id.progressBar) // Still requires findViewById if not in binding
-
-        // Observe the login UI state from the ViewModel
-        viewModel.loginUiState.observe(this) { state ->
-            when (state) {
-                is LoginUiState.Idle -> {
-                    progressBar?.visibility = View.GONE
-                    binding.loginButton.isEnabled = true // Direct use of binding
-                    binding.usernameEditText.isEnabled = true // Direct use of binding
-                    binding.passwordEditText.isEnabled = true // Direct use of binding
-                }
-                is LoginUiState.Loading -> {
-                    progressBar?.visibility = View.VISIBLE
-                    binding.loginButton.isEnabled = false // Direct use of binding
-                    binding.usernameEditText.isEnabled = false // Direct use of binding
-                    binding.passwordEditText.isEnabled = false // Direct use of binding
-                }
-                is LoginUiState.Success -> {
-                    progressBar?.visibility = View.GONE
-                    binding.loginButton.isEnabled = true // Direct use of binding
-                    binding.usernameEditText.isEnabled = true // Direct use of binding
-                    binding.passwordEditText.isEnabled = true // Direct use of binding
-                    Toast.makeText(this, "Login successful: ${state.response.investorName}", Toast.LENGTH_LONG).show()
+        // CORRECTED: Observe loginResult LiveData
+        viewModel.loginResult.observe(this) { result ->
+            when (result) {
+                is Results.Success -> {
+                    Toast.makeText(this, "Login successful: ${result.data.investorName}", Toast.LENGTH_LONG).show()
                     // Navigate to MainActivity on successful login
                     val intent = Intent(this, MainActivity::class.java)
                     startActivity(intent)
                     finish() // Close LoginActivity
                 }
-                is LoginUiState.Error -> {
-                    progressBar?.visibility = View.GONE
-                    binding.loginButton.isEnabled = true // Direct use of binding
-                    binding.usernameEditText.isEnabled = true // Direct use of binding
-                    binding.passwordEditText.isEnabled = true // Direct use of binding
-                    Toast.makeText(this, "Login failed: ${state.message}", Toast.LENGTH_LONG).show()
-                    viewModel.resetUiState() // Reset ViewModel state to allow re-login attempts
+                is Results.Error -> {
+                    Toast.makeText(this, "Login failed: ${result.message ?: "Unknown error"}", Toast.LENGTH_LONG).show()
+                }
+                is Results.Loading -> {
+                    // Handled by isLoading observer, but included for completeness if needed
                 }
             }
         }
 
+        // CORRECTED: Observe isLoading LiveData for UI state
+        viewModel.isLoading.observe(this) { isLoading ->
+            if (isLoading) {
+                binding.progressBar.visibility = View.VISIBLE // Use binding for ProgressBar
+                binding.loginButton.isEnabled = false
+                binding.usernameEditText.isEnabled = false
+                binding.passwordEditText.isEnabled = false
+            } else {
+                binding.progressBar.visibility = View.GONE // Use binding for ProgressBar
+                binding.loginButton.isEnabled = true
+                binding.usernameEditText.isEnabled = true
+                binding.passwordEditText.isEnabled = true
+            }
+        }
+
         // Set up login button click listener
-        binding.loginButton.setOnClickListener { // Direct use of binding
-            val username = binding.usernameEditText.text.toString() // Direct use of binding
-            val password = binding.passwordEditText.text.toString() // Direct use of binding
+        binding.loginButton.setOnClickListener {
+            val username = binding.usernameEditText.text.toString()
+            val password = binding.passwordEditText.text.toString()
 
             if (username.isNotEmpty() && password.isNotEmpty()) {
-                // Call the login function on the ViewModel
-                viewModel.login(LoginRequest(username = username, password = password))
+                // MODIFIED: Call login with username and password directly
+                viewModel.login(username = username, password = password)
             } else {
                 Toast.makeText(this, "Please enter username and password", Toast.LENGTH_SHORT).show()
             }

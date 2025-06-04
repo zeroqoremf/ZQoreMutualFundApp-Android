@@ -2,7 +2,7 @@
 package com.zeroqore.mutualfundapp.data
 
 import com.zeroqore.mutualfundapp.network.MutualFundApiService
-import com.zeroqore.mutualfundapp.util.Results // <<< CHANGED IMPORT PATH AND NAME
+import com.zeroqore.mutualfundapp.util.Results
 import kotlinx.coroutines.delay
 import retrofit2.HttpException
 import java.io.IOException
@@ -11,21 +11,27 @@ import java.io.IOException
 interface MutualFundAppRepository {
     // Keep for now, but consider removing later as it's deprecated in API service
     suspend fun getFundHoldings(): Results<List<MutualFundHolding>>
-    suspend fun getHoldings(): Results<List<MutualFundHolding>>
+    // MODIFIED: Updated signature to reflect changes in MutualFundApiService
+    suspend fun getHoldings(): Results<List<MutualFundHolding>> // Interface method remains the same
     suspend fun getMenuItems(): List<MenuItem>
     suspend fun getPortfolioSummary(): Results<PortfolioSummary>
+    // Asset allocation will still operate on the Results of holdings
     suspend fun getAssetAllocation(): AssetAllocation
     suspend fun getTransactions(): Results<List<MutualFundTransaction>>
-    // --- NEW: Add these methods to the interface ---
     suspend fun getFundDetails(fundId: String): Results<MutualFundHolding>
     suspend fun getFunds(): Results<List<Fund>>
-    // --- END NEW ---
 }
 
 // Renamed Concrete implementation of the Repository that uses the network service
-class NetworkMutualFundAppRepository(private val apiService: MutualFundApiService) : MutualFundAppRepository {
+class NetworkMutualFundAppRepository(
+    private val apiService: MutualFundApiService,
+    // ADDED: Inject AuthTokenManager here
+    private val authTokenManager: AuthTokenManager
+) : MutualFundAppRepository {
 
     override suspend fun getFundHoldings(): Results<List<MutualFundHolding>> {
+        // This method is deprecated in API service and will be removed later.
+        // It does not use investorId/distributorId.
         return try {
             val holdings = apiService.getFundHoldings()
             Results.Success(holdings)
@@ -46,7 +52,18 @@ class NetworkMutualFundAppRepository(private val apiService: MutualFundApiServic
 
     override suspend fun getHoldings(): Results<List<MutualFundHolding>> {
         return try {
-            val holdings = apiService.getHoldings()
+            val investorId = authTokenManager.getInvestorId()
+            val distributorId = authTokenManager.getDistributorId()
+
+            if (investorId == null || distributorId == null) {
+                return Results.Error(
+                    IllegalStateException("Investor ID or Distributor ID not found."),
+                    "User not logged in or authentication data missing. Please log in again."
+                )
+            }
+
+            // MODIFIED: Pass both distributorId and investorId to the API service
+            val holdings = apiService.getHoldings(distributorId, investorId)
             Results.Success(holdings)
         } catch (e: IOException) {
             Results.Error(e, "Please check your internet connection for holdings.")
@@ -64,8 +81,6 @@ class NetworkMutualFundAppRepository(private val apiService: MutualFundApiServic
     }
 
     override suspend fun getMenuItems(): List<MenuItem> {
-        // For now, returning dummy data as there's no API for this yet
-        // No change needed here as it doesn't make an API call
         return listOf(
             MenuItem(id = "profile", title = "My Profile"),
             MenuItem(id = "settings", title = "Settings"),
@@ -78,6 +93,7 @@ class NetworkMutualFundAppRepository(private val apiService: MutualFundApiServic
 
     override suspend fun getPortfolioSummary(): Results<PortfolioSummary> {
         return try {
+            // If portfolio summary also needs IDs, you'd add similar logic here
             val summary = apiService.getPortfolioSummary()
             Results.Success(summary)
         } catch (e: IOException) {
@@ -96,13 +112,11 @@ class NetworkMutualFundAppRepository(private val apiService: MutualFundApiServic
     }
 
     override suspend fun getAssetAllocation(): AssetAllocation {
-        // This method calculates based on holdings, not a direct API call.
-        // However, getHoldings() now returns a Results, so we need to handle that.
-        val holdingsResult = getHoldings() // This now returns Results<List<MutualFundHolding>>
+        val holdingsResult = getHoldings()
 
         return when (holdingsResult) {
             is Results.Success -> {
-                val holdings = holdingsResult.data // Get the actual list of holdings
+                val holdings = holdingsResult.data
                 var equityValue = 0.0
                 var debtValue = 0.0
                 var hybridValue = 0.0
@@ -131,12 +145,9 @@ class NetworkMutualFundAppRepository(private val apiService: MutualFundApiServic
                 )
             }
             is Results.Error -> {
-                // If holdings couldn't be fetched, return an AssetAllocation with zero values
-                // You might also want to log this error or report it to a crashlytics service
                 AssetAllocation(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
             }
             Results.Loading -> {
-                // Should ideally not happen if getHoldings() is awaited, but handled for completeness
                 AssetAllocation(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
             }
         }
@@ -144,6 +155,7 @@ class NetworkMutualFundAppRepository(private val apiService: MutualFundApiServic
 
     override suspend fun getTransactions(): Results<List<MutualFundTransaction>> {
         return try {
+            // If transactions also needs IDs, you'd add similar logic here
             val transactions = apiService.getTransactions()
             Results.Success(transactions)
         } catch (e: IOException) {
@@ -161,7 +173,6 @@ class NetworkMutualFundAppRepository(private val apiService: MutualFundApiServic
         }
     }
 
-    // --- Implementations for newly added interface methods ---
     override suspend fun getFundDetails(fundId: String): Results<MutualFundHolding> {
         return try {
             val fundDetails = apiService.getFundDetails(fundId)
@@ -209,181 +220,169 @@ class MockMutualFundAppRepository : MutualFundAppRepository {
             fundName = "Aditya Birla Sun Life Frontline Equity Fund",
             isin = "INF209K01234",
             currentValue = 35000.0,
-            purchasePrice = 28000.0, // Added purchasePrice
+            purchasePrice = 28000.0,
             units = 150.0,
-            currentNav = 233.33, // Corrected from 'nav'
-            purchaseNav = 186.67, // Added purchaseNav (example value)
-            lastUpdated = "2024-05-30", // Added lastUpdated
+            currentNav = 233.33,
+            purchaseNav = 186.67,
+            lastUpdated = "2024-05-30",
             fundType = "Equity",
             category = "Large Cap",
             riskLevel = "High",
-            previousDayNav = 230.0 // Added previousDayNav
+            previousDayNav = 230.0
         ),
         MutualFundHolding(
             fundName = "ICICI Prudential Bluechip Fund",
             isin = "INF109K01K70",
             currentValue = 28000.0,
-            purchasePrice = 25000.0, // Added purchasePrice
+            purchasePrice = 25000.0,
             units = 120.0,
-            currentNav = 233.33, // Corrected from 'nav'
-            purchaseNav = 208.33, // Added purchaseNav (example value)
-            lastUpdated = "2024-05-30", // Added lastUpdated
+            currentNav = 233.33,
+            purchaseNav = 208.33,
+            lastUpdated = "2024-05-30",
             fundType = "Equity",
             category = "Large Cap",
             riskLevel = "High",
-            previousDayNav = 231.0 // Added previousDayNav
+            previousDayNav = 231.0
         ),
         MutualFundHolding(
             fundName = "HDFC Short Term Debt Fund",
             isin = "INF179KC17G0",
             currentValue = 18000.0,
-            purchasePrice = 17500.0, // Added purchasePrice
+            purchasePrice = 17500.0,
             units = 800.0,
-            currentNav = 22.50, // Corrected from 'nav'
-            purchaseNav = 21.88, // Added purchaseNav (example value)
-            lastUpdated = "2024-05-30", // Added lastUpdated
+            currentNav = 22.50,
+            purchaseNav = 21.88,
+            lastUpdated = "2024-05-30",
             fundType = "Debt",
             category = "Short Duration",
             riskLevel = "Low",
-            previousDayNav = 22.45 // Added previousDayNav
+            previousDayNav = 22.45
         ),
         MutualFundHolding(
             fundName = "SBI Conservative Hybrid Fund",
             isin = "INF200K019B8",
             currentValue = 22000.0,
-            purchasePrice = 20000.0, // Added purchasePrice
+            purchasePrice = 20000.0,
             units = 300.0,
-            currentNav = 73.33, // Corrected from 'nav'
-            purchaseNav = 66.67, // Added purchaseNav (example value)
-            lastUpdated = "2024-05-30", // Added lastUpdated
+            currentNav = 73.33,
+            purchaseNav = 66.67,
+            lastUpdated = "2024-05-30",
             fundType = "Hybrid",
             category = "Conservative",
             riskLevel = "Medium",
-            previousDayNav = 73.00 // Added previousDayNav
+            previousDayNav = 73.00
         ),
         MutualFundHolding(
             fundName = "Axis Long Term Equity Fund",
             isin = "INF846K01D60",
             currentValue = 40000.0,
-            purchasePrice = 35000.0, // Added purchasePrice
+            purchasePrice = 35000.0,
             units = 200.0,
-            currentNav = 200.0, // Corrected from 'nav'
-            purchaseNav = 175.0, // Added purchaseNav (example value)
-            lastUpdated = "2024-05-30", // Added lastUpdated
+            currentNav = 200.0,
+            purchaseNav = 175.0,
+            lastUpdated = "2024-05-30",
             fundType = "Equity",
             category = "ELSS",
             riskLevel = "High",
-            previousDayNav = 198.0 // Added previousDayNav
+            previousDayNav = 198.0
         )
     )
 
-    // --- VERIFYING/CORRECTING OTHER DUMMY DATA TO MATCH THEIR DATA CLASSES ---
-
-    // Assuming PortfolioSummary has: totalInvested, currentValue, overallGainLoss, overallGainLossPercentage, lastUpdated
-    // Based on your previous PortfolioSummary.kt, it had: totalInvested, currentValue, overallGainLoss, overallGainLossPercentage, lastUpdated
-    // The dummy data you provided previously was: totalInvested = 150000.0, currentValue = 165000.0, overallGainLoss = 15000.0, overallGainLossPercentage = 10.0, lastUpdated = "2024-06-01T14:30:00Z"
-    // The latest dummy data I provided had: totalInvestedValue, totalCurrentValue, totalGainLoss, totalGainLossPercentage
-    // Let's align with your PortfolioSummary.kt (totalInvested, currentValue, overallGainLoss, overallGainLossPercentage, lastUpdated)
     private val dummyPortfolioSummary = PortfolioSummary(
         totalInvested = 150000.0,
         currentValue = 165000.0,
         overallGainLoss = 15000.0,
         overallGainLossPercentage = 10.0,
-        lastUpdated = "2024-06-01T14:30:00Z" // Example timestamp
+        lastUpdated = "2024-06-01T14:30:00Z"
     )
 
-    // Assuming MutualFundTransaction has: transactionId, fundName, isin, transactionDate, transactionType, amount, units, navAtTransaction
-    // Your previous dummy data had: transactionId, fundName, type, date, amount, units, nav
-    // Let's align with MutualFundTransaction.kt
     private val dummyTransactions = listOf(
         MutualFundTransaction(
             transactionId = "TRN001",
             fundName = "Aditya Birla Sun Life Frontline Equity Fund",
-            isin = "INF209K01234", // Added ISIN
-            transactionDate = "2023-01-15", // Corrected from 'date'
-            transactionType = "BUY", // Corrected from 'type'
+            isin = "INF209K01234",
+            transactionDate = "2023-01-15",
+            transactionType = "BUY",
             amount = 10000.0,
             units = 40.0,
-            navAtTransaction = 250.0 // Corrected from 'nav'
+            navAtTransaction = 250.0
         ),
         MutualFundTransaction(
             transactionId = "TRN002",
             fundName = "HDFC Short Term Debt Fund",
-            isin = "INF179KC17G0", // Added ISIN
-            transactionDate = "2023-03-20", // Corrected from 'date'
-            transactionType = "SELL", // Corrected from 'type'
+            isin = "INF179KC17G0",
+            transactionDate = "2023-03-20",
+            transactionType = "SELL",
             amount = 5000.0,
             units = 250.0,
-            navAtTransaction = 20.0 // Corrected from 'nav'
+            navAtTransaction = 20.0
         ),
         MutualFundTransaction(
             transactionId = "TRN003",
             fundName = "SBI Conservative Hybrid Fund",
-            isin = "INF200K019B8", // Added ISIN
-            transactionDate = "2023-04-01", // Corrected from 'date'
-            transactionType = "SWP", // Corrected from 'type'
+            isin = "INF200K019B8",
+            transactionDate = "2023-04-01",
+            transactionType = "SWP",
             amount = 1000.0,
             units = 13.63,
-            navAtTransaction = 73.33 // Corrected from 'nav'
+            navAtTransaction = 73.33
         )
     )
 
-    // Assuming Fund has: fundName, isin, currentNav, previousDayNav, fundType, category, riskLevel, aum, minInvestment, expenseRatio, oneYearReturn, threeYearReturn, fiveYearReturn, fundHouse
-    // Your previous dummy data had: id, name, type, category, riskLevel, returnsLast1Year, returnsLast3Year, returnsLast5Year, minInvestment, expenseRatio, fundManager, exitLoad
-    // Let's align with Fund.kt
     private val dummyFunds = listOf(
         Fund(
-            fundName = "Large Cap Equity Fund", // Corrected from 'name'
-            isin = "FND001EQ", // Added ISIN
-            currentNav = 120.5, // Added currentNav
-            previousDayNav = 119.8, // Added previousDayNav
-            fundType = "Equity", // Corrected from 'type'
+            fundName = "Large Cap Equity Fund",
+            isin = "FND001EQ",
+            currentNav = 120.5,
+            previousDayNav = 119.8,
+            fundType = "Equity",
             category = "Large Cap",
             riskLevel = "High",
-            aum = 100000000.0, // Added AUM (example value)
+            aum = 100000000.0,
             minInvestment = 5000.0,
             expenseRatio = 0.8,
-            oneYearReturn = 25.5, // Corrected from 'returnsLast1Year'
-            threeYearReturn = 18.2, // Corrected from 'returnsLast3Year'
-            fiveYearReturn = 15.0, // Corrected from 'returnsLast5Year'
-            fundHouse = "ABC Asset Management" // Corrected from 'fundManager', Added fundHouse
+            oneYearReturn = 25.5,
+            threeYearReturn = 18.2,
+            fiveYearReturn = 15.0,
+            fundHouse = "ABC Asset Management"
         ),
         Fund(
-            fundName = "Liquid Debt Fund", // Corrected from 'name'
-            isin = "FND002DB", // Added ISIN
-            currentNav = 105.2, // Added currentNav
-            previousDayNav = 105.1, // Added previousDayNav
-            fundType = "Debt", // Corrected from 'type'
+            fundName = "Liquid Debt Fund",
+            isin = "FND002DB",
+            currentNav = 105.2,
+            previousDayNav = 105.1,
+            fundType = "Debt",
             category = "Liquid",
             riskLevel = "Low",
-            aum = 50000000.0, // Added AUM (example value)
+            aum = 50000000.0,
             minInvestment = 1000.0,
             expenseRatio = 0.2,
-            oneYearReturn = 6.8, // Corrected from 'returnsLast1Year'
-            threeYearReturn = 6.2, // Corrected from 'returnsLast3Year'
-            fiveYearReturn = 5.9, // Corrected from 'returnsLast5Year'
-            fundHouse = "XYZ Debt House" // Corrected from 'fundManager', Added fundHouse
+            oneYearReturn = 6.8,
+            threeYearReturn = 6.2,
+            fiveYearReturn = 5.9,
+            fundHouse = "XYZ Debt House"
         ),
         Fund(
-            fundName = "Aggressive Hybrid Fund", // Corrected from 'name'
-            isin = "FND003HB", // Added ISIN
-            currentNav = 180.0, // Added currentNav
-            previousDayNav = 178.5, // Added previousDayNav
-            fundType = "Hybrid", // Corrected from 'type'
+            fundName = "Aggressive Hybrid Fund",
+            isin = "FND003HB",
+            currentNav = 180.0,
+            previousDayNav = 178.5,
+            fundType = "Hybrid",
             category = "Aggressive",
             riskLevel = "Medium to High",
-            aum = 75000000.0, // Added AUM (example value)
+            aum = 75000000.0,
             minInvestment = 2000.0,
             expenseRatio = 0.5,
-            oneYearReturn = 18.0, // Corrected from 'returnsLast1Year'
-            threeYearReturn = 14.5, // Corrected from 'returnsLast3Year'
-            fiveYearReturn = 12.8, // Corrected from 'returnsLast5Year'
-            fundHouse = "PQR Wealth Management" // Corrected from 'fundManager', Added fundHouse
+            oneYearReturn = 18.0,
+            threeYearReturn = 14.5,
+            fiveYearReturn = 12.8,
+            fundHouse = "PQR Wealth Management"
         )
     )
-    // --- END POPULATED DUMMY DATA ---
 
     override suspend fun getFundHoldings(): Results<List<MutualFundHolding>> {
+        // This method will be removed. Using the other getHoldings for consistency.
+        delay(1500L) // Add a delay here to simulate network call
         return Results.Success(dummyHoldings)
     }
 
@@ -406,12 +405,11 @@ class MockMutualFundAppRepository : MutualFundAppRepository {
     }
 
     override suspend fun getAssetAllocation(): AssetAllocation {
-        // This will still calculate based on holdings, but you need to get them from a Results
-        val holdingsResult = getHoldings() // This now returns Results<List<MutualFundHolding>>
+        val holdingsResult = getHoldings()
 
         return when (holdingsResult) {
             is Results.Success -> {
-                val holdings = holdingsResult.data // Get the actual list of holdings
+                val holdings = holdingsResult.data
                 var equityValue = 0.0
                 var debtValue = 0.0
                 var hybridValue = 0.0
@@ -440,8 +438,6 @@ class MockMutualFundAppRepository : MutualFundAppRepository {
                 )
             }
             is Results.Error -> {
-                // If holdings couldn't be fetched, return an AssetAllocation with zero values
-                // You might also want to log this error or report it to a crashlytics service
                 AssetAllocation(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
             }
             Results.Loading -> AssetAllocation(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
