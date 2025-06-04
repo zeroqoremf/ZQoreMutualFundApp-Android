@@ -109,13 +109,12 @@ class NetworkMutualFundAppRepository(
         }
     }
 
-    // UPDATED: Now requires investorId and distributorId parameters.
-    // TEMPORARILY MODIFIED TO USE getTransactionsSimplified()
+    // UPDATED: Now correctly calls the parameterized API service method
     override suspend fun getTransactions(investorId: String, distributorId: String): Results<List<MutualFundTransaction>> {
         return try {
-            // *** TEMPORARY CHANGE: Using getTransactionsSimplified() for testing the root path ***
-            val transactions = apiService.getTransactionsSimplified()
-            Log.d("MutualFundAppRepository", "Fetched transactions using simplified endpoint.")
+            // REVERTED: Now using the parameterized getTransactions() method
+            val transactions = apiService.getTransactions(distributorId, investorId) // <--- CHANGED THIS LINE
+            Log.d("MutualFundAppRepository", "Fetched transactions using parameterized endpoint.") // <--- CHANGED LOG MESSAGE
             Results.Success(transactions)
         } catch (e: IOException) {
             val errorMessage = "Please check your internet connection for transactions."
@@ -124,15 +123,15 @@ class NetworkMutualFundAppRepository(
         } catch (e: HttpException) {
             val errorBody = e.response()?.errorBody()?.string()
             val errorMessage = when (e.code()) {
-                404 -> "Transactions data not found at simplified endpoint. Please try again later."
-                in 400..499 -> "Client error fetching transactions (simplified): ${e.message()} | Body: $errorBody"
-                in 500..599 -> "Server error fetching transactions (simplified). Please try again later."
-                else -> "An unexpected error occurred while fetching transactions (simplified): ${e.message()} | Body: $errorBody"
+                404 -> "Transactions data not found. Please try again later." // Updated message
+                in 400..499 -> "Client error fetching transactions: ${e.message()} | Body: $errorBody" // Updated message
+                in 500..599 -> "Server error fetching transactions. Please try again later." // Updated message
+                else -> "An unexpected error occurred while fetching transactions: ${e.message()} | Body: $errorBody" // Updated message
             }
             Log.e("MutualFundAppRepository", "HttpException getTransactions: $errorMessage", e)
             Results.Error(e, errorMessage)
         } catch (e: Exception) {
-            val errorMessage = "An unknown error occurred while fetching transactions (simplified): ${e.message}"
+            val errorMessage = "An unknown error occurred while fetching transactions: ${e.message}" // Updated message
             Log.e("MutualFundAppRepository", "Unknown error getTransactions: $errorMessage", e)
             Results.Error(e, errorMessage)
         }

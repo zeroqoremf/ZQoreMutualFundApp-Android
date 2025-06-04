@@ -2,6 +2,7 @@
 package com.zeroqore.mutualfundapp.data
 
 import android.content.Context
+import android.util.Log // ADDED: Import for Log class
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
@@ -62,19 +63,24 @@ class AppContainer(
         val assetFileName: String? = when {
             // NEW RULE: Handle dynamic holdings path for mock data
             url.contains("/api/distributors/") && url.contains("/investors/") && url.endsWith("/holdings") -> {
-                println("AssetReadingInterceptor: Matched dynamic holdings path. Serving holdings.json")
+                Log.d("AssetInterceptor", "Matched dynamic holdings path. Serving holdings.json") // CHANGED: println to Log.d
                 "holdings.json"
             }
             // ADDED: Handle dynamic portfolio-summary path for mock data
             url.contains("/api/distributors/") && url.contains("/investors/") && url.endsWith("/portfolio-summary") -> {
-                println("AssetReadingInterceptor: Matched dynamic portfolio summary path. Serving portfolio_summary.json")
+                Log.d("AssetInterceptor", "Matched dynamic portfolio summary path. Serving portfolio_summary.json") // CHANGED: println to Log.d
                 "portfolio_summary.json"
+            }
+            // ADDED: Handle dynamic transactions path for mock data -- THIS IS THE NEW ADDITION
+            url.contains("/api/distributors/") && url.contains("/investors/") && url.endsWith("/transactions") -> {
+                Log.d("AssetInterceptor", "Matched dynamic transactions path. Serving transactions.json") // CHANGED: println to Log.d
+                "transactions.json"
             }
             // Existing rules (can be kept if other parts of the app still use these direct paths,
             // but the dynamic rules handle the API calls more robustly)
             url.endsWith("holdings.json") -> "holdings.json"
             url.endsWith("transactions.json") -> "transactions.json"
-            url.endsWith("portfolio_summary.json") -> "portfolio_summary.json" // This specific rule might become redundant if all calls are dynamic
+            url.endsWith("portfolio_summary.json") -> "portfolio_summary.json"
             url.endsWith("funds.json") -> "funds.json"
 
             // Check for dynamic paths like fund_details/{fundId}.json
@@ -90,7 +96,7 @@ class AppContainer(
         if (assetFileName != null) {
             try {
                 val jsonString = getJsonFromAssets(assetFileName)
-                println("AssetReadingInterceptor: Serving $assetFileName for URL: $url")
+                Log.d("AssetInterceptor", "Serving $assetFileName for URL: $url") // CHANGED: println to Log.d
 
                 Response.Builder()
                     .code(200)
@@ -101,7 +107,7 @@ class AppContainer(
                     .addHeader("content-type", "application/json")
                     .build()
             } catch (e: IOException) {
-                println("AssetReadingInterceptor Error: ${e.message}")
+                Log.e("AssetInterceptor", "Error reading asset file: $assetFileName. ${e.message}", e) // CHANGED: println to Log.e
                 Response.Builder()
                     .code(404)
                     .message("Asset mock file not found or could not be read: $assetFileName")
@@ -112,7 +118,7 @@ class AppContainer(
                     .build()
             }
         } else {
-            println("AssetReadingInterceptor: No asset mock found for URL: $url. Proceeding to network.")
+            Log.d("AssetInterceptor", "No asset mock found for URL: $url. Proceeding to network.") // CHANGED: println to Log.d
             chain.proceed(request)
         }
     }
