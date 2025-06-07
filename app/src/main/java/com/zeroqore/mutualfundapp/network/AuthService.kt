@@ -1,4 +1,3 @@
-// app/src/main/java/com/zeroqore/mutualfundapp/network/AuthService.kt
 package com.zeroqore.mutualfundapp.network
 
 import com.zeroqore.mutualfundapp.data.auth.LoginRequest
@@ -11,6 +10,6 @@ import retrofit2.http.POST
  */
 interface AuthService {
 
-    @POST("api/auth/login") // This is the path we discussed
+    @POST("api/v1/auth/login") // <--- CHANGED THIS LINE
     suspend fun loginUser(@Body request: LoginRequest): LoginResponse
 }

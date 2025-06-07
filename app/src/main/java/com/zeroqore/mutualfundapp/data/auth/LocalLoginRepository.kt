@@ -28,9 +28,10 @@ class LocalLoginRepository : LoginRepository {
                     refreshToken = "local_dummy_refresh_token",
                     expiresIn = 3600L, // 1 hour
                     tokenType = "Bearer",
-                    investorId = "LOCAL_INV_12345",
-                    distributorId = "LOCAL_DIST_67890",
-                    investorName = "Local Test User" // Optional: Can be null if your data allows
+                    // CORRECTED: Use userId, parentId, and username as per updated LoginResponse.kt
+                    userId = 12345L, // Dummy Long ID for investorId
+                    parentId = 67890L, // Dummy Long ID for distributorId, or null if no parent
+                    username = "Local Test User" // Dummy username for investorName
                 )
             )
         } else {

@@ -11,7 +11,7 @@ import com.zeroqore.mutualfundapp.data.AuthTokenManager
 import com.zeroqore.mutualfundapp.data.auth.LoginRepository
 import com.zeroqore.mutualfundapp.data.auth.LoginRequest
 import com.zeroqore.mutualfundapp.data.auth.LoginResponse
-import com.zeroqore.mutualfundapp.util.Results // CORRECTED: Importing YOUR custom Results sealed class
+import com.zeroqore.mutualfundapp.util.Results
 import kotlinx.coroutines.launch
 
 class LoginViewModel(
@@ -19,7 +19,6 @@ class LoginViewModel(
     private val authTokenManager: AuthTokenManager
 ) : ViewModel() {
 
-    // CORRECTED: _loginResult now uses YOUR custom Results sealed class
     private val _loginResult = MutableLiveData<Results<LoginResponse>>()
     val loginResult: LiveData<Results<LoginResponse>> = _loginResult
 
@@ -28,32 +27,33 @@ class LoginViewModel(
 
     fun login(username: String, password: String) {
         _isLoading.value = true // Show loading indicator
-        _loginResult.value = Results.Loading // Set initial loading state in YOUR custom Results
+        _loginResult.value = Results.Loading // Set initial loading state
 
         viewModelScope.launch {
             val request = LoginRequest(username, password)
-            // loginRepository.login returns kotlin.Result<LoginResponse>
             val repoResult: kotlin.Result<LoginResponse> = loginRepository.login(request)
 
-            // CORRECTED: Mapping kotlin.Result to YOUR custom Results sealed class
             repoResult
                 .onSuccess { loginResponse ->
-                    // SAVE AUTH DATA HERE if the repository call was successful
+                    // Convert Long IDs from LoginResponse to String for AuthTokenManager
+                    val investorIdString = loginResponse.userId.toString()
+                    val distributorIdString = loginResponse.parentId?.toString() // Convert Long? to String?
+                    val investorNameString = loginResponse.username // Directly use username which is String?
+
+                    // SAVE AUTH DATA HERE
                     authTokenManager.saveAuthData(
                         accessToken = loginResponse.accessToken,
                         refreshToken = loginResponse.refreshToken,
-                        expiresIn = loginResponse.expiresIn,
-                        tokenType = loginResponse.tokenType,
-                        investorId = loginResponse.investorId,
-                        distributorId = loginResponse.distributorId,
-                        investorName = loginResponse.investorName
+                        expiresInSeconds = loginResponse.expiresIn, // Updated parameter name
+                        tokenType = loginResponse.tokenType,        // Updated parameter name
+                        investorId = investorIdString,
+                        distributorId = distributorIdString as String?, // KEY CHANGE: Explicitly cast to String?
+                        investorName = investorNameString
                     )
-                    Log.d("LoginViewModel", "Auth data saved to SharedPreferences.")
-                    // Update LiveData with YOUR custom Results.Success
+                    Log.d("LoginViewModel", "Auth data saved to SharedPreferences. Investor ID: $investorIdString, Distributor ID: $distributorIdString")
                     _loginResult.value = Results.Success(loginResponse)
                 }
                 .onFailure { exception ->
-                    // Update LiveData with YOUR custom Results.Error
                     Log.e("LoginViewModel", "Login failed: ${exception.message}", exception)
                     _loginResult.value = Results.Error(exception, exception.message)
                 }

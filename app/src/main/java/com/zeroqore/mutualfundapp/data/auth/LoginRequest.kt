@@ -9,7 +9,7 @@ import com.google.gson.annotations.SerializedName
  * Can be extended or adapted for other authentication methods (e.g., OTP, social login tokens).
  */
 data class LoginRequest(
-    @SerializedName("username")
+    @SerializedName("identifier")
     val username: String, // Typically email or unique identifier
     @SerializedName("password")
     val password: String

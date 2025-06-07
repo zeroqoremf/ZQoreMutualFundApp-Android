@@ -45,22 +45,27 @@ class PortfolioViewModel(
             _isLoading.postValue(true)
             _errorMessage.postValue(null)
 
-            // NEW: Retrieve investorId and distributorId from AuthTokenManager
+            // Retrieve investorId and distributorId from AuthTokenManager
             val investorId = authTokenManager.getInvestorId()
             val distributorId = authTokenManager.getDistributorId()
 
-            if (investorId == null || distributorId == null) {
-                val errorMsg = "Authentication data (Investor ID or Distributor ID) missing. Please log in again."
+            // MODIFIED: Only check if investorId is missing/empty.
+            // distributorId can be null if it's an optional field for the user type.
+            if (investorId.isNullOrEmpty()) {
+                val errorMsg = "Authentication data (Investor ID) missing. Please log in again." // Updated error message
                 _errorMessage.postValue(errorMsg)
                 _isLoading.postValue(false)
                 _portfolioSummary.postValue(PortfolioSummary(0.0, 0.0, 0.0, 0.0, "N/A"))
                 allHoldings = emptyList()
                 updatePortfolioDisplayItems()
                 Log.e("PortfolioViewModel", errorMsg)
-                return@launch // Stop execution if IDs are missing
+                return@launch // Stop execution if investorId is missing
             }
 
-            // Fetch both summary and holdings concurrently, passing the IDs
+            // Fetch both summary and holdings concurrently, passing the IDs.
+            // The repository's implementation (MockMutualFundAppRepository for now)
+            // will receive investorId (non-null) and distributorId (which might be null).
+            // Ensure your actual repository/API can handle a null distributorId if applicable.
             val summaryResult = repository.getPortfolioSummary(investorId, distributorId)
             val holdingsResult = repository.getHoldings(investorId, distributorId)
 

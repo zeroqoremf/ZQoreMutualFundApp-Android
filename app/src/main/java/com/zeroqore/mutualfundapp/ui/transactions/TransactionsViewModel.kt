@@ -34,20 +34,25 @@ class TransactionsViewModel(
         _errorMessage.value = null // Clear any previous errors
 
         viewModelScope.launch {
-            // NEW: Retrieve investorId and distributorId from AuthTokenManager
+            // Retrieve investorId and distributorId from AuthTokenManager
             val investorId = authTokenManager.getInvestorId()
             val distributorId = authTokenManager.getDistributorId()
 
-            if (investorId == null || distributorId == null) {
-                val errorMsg = "Authentication data (Investor ID or Distributor ID) missing for Transactions. Please log in again."
+            // MODIFIED: Only check if investorId is missing/empty.
+            // distributorId can be null if it's an optional field for the user type.
+            if (investorId.isNullOrEmpty()) {
+                val errorMsg = "Authentication data (Investor ID) missing for Transactions. Please log in again." // Updated error message
                 _errorMessage.value = errorMsg
                 _isLoading.value = false
                 _transactions.value = emptyList()
                 Log.e("TransactionsViewModel", errorMsg)
-                return@launch // Stop execution if IDs are missing
+                return@launch // Stop execution if investorId is missing
             }
 
-            // MODIFIED: Pass investorId and distributorId to repository.getTransactions()
+            // Pass investorId (non-null) and distributorId (which might be null)
+            // The repository's implementation (MockMutualFundAppRepository for now)
+            // will receive investorId (non-null) and distributorId (which might be null).
+            // Ensure your actual repository/API can handle a null distributorId if applicable.
             val result = repository.getTransactions(investorId, distributorId)
 
             when (result) {

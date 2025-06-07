@@ -2,7 +2,6 @@ package com.zeroqore.mutualfundapp
 
 import android.app.Application
 import com.zeroqore.mutualfundapp.data.AppContainer
-//import com.zeroqore.mutualfundapp.data.AppContainerImpl // Assuming you'll rename AppContainer to AppContainerImpl
 
 class MutualFundApplication : Application() {
 
@@ -11,14 +10,12 @@ class MutualFundApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        // Initialize AppContainer
+        // Initialize AppContainer with the new BuildConfig flags
         container = AppContainer(
             this,
             BuildConfig.BASE_URL,
-            BuildConfig.USE_MOCK_ASSET_INTERCEPTOR
+            BuildConfig.USE_LIVE_LOGIN_API,     // NEW: Pass the flag for live login API
+            BuildConfig.USE_DASHBOARD_MOCKS     // NEW: Pass the flag for dashboard data mocks
         )
-        // If you decide to rename AppContainer to AppContainerImpl,
-        // change the line above to:
-        // container = AppContainerImpl(this, BuildConfig.BASE_URL, BuildConfig.USE_MOCK_ASSET_INTERCEPTOR)
     }
 }

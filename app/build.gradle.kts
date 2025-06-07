@@ -14,7 +14,7 @@ android {
 
     defaultConfig {
         applicationId = "com.zeroqore.mutualfundapp"
-        minSdk = 21
+        minSdk = 23 // CHANGED: Updated minimum SDK to 23
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
@@ -30,8 +30,16 @@ android {
     buildTypes {
         named("debug") {
             isMinifyEnabled = false
-            buildConfigField("String", "BASE_URL", "\"http://private-anon-e766e44b9e-mutualfundapi.apiary-mock.com/\"")
-            buildConfigField("Boolean", "USE_MOCK_ASSET_INTERCEPTOR", "true")
+            buildConfigField("String", "BASE_URL", "\"http://192.168.0.102:8080/\"")
+
+            // --- UPDATED CONFIGURATION FOR GRANULAR CONTROL ---
+            // Flag to enable/disable live login API calls
+            buildConfigField("Boolean", "USE_LIVE_LOGIN_API", "true")
+            // Flag to enable/disable mocking for dashboard (holdings, portfolio, transactions) data
+            buildConfigField("Boolean", "USE_DASHBOARD_MOCKS", "true")
+            // Keep USE_MOCK_ASSET_INTERCEPTOR for the AssetInterceptor if needed,
+            // but now it's effectively controlled by USE_DASHBOARD_MOCKS for relevant paths
+            buildConfigField("Boolean", "USE_MOCK_ASSET_INTERCEPTOR", "true") // Ensure this is true to activate AssetInterceptor for dashboard mocks
         }
         named("release") {
             isMinifyEnabled = true
@@ -39,8 +47,11 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            buildConfigField("String", "BASE_URL", "\"http://your.production.api.com/\"")
-            buildConfigField("Boolean", "USE_MOCK_ASSET_INTERCEPTOR", "false")
+            buildConfigField("String", "BASE_URL", "\"http://192.168.0.102:8080/\"")
+            // For release, typically you'd want live APIs if backend is ready
+            buildConfigField("Boolean", "USE_LIVE_LOGIN_API", "false") // Set to 'true' when backend is fully ready
+            buildConfigField("Boolean", "USE_DASHBOARD_MOCKS", "false") // Set to 'false' when backend is fully ready
+            buildConfigField("Boolean", "USE_MOCK_ASSET_INTERCEPTOR", "false") // No asset mocks in release
         }
     }
 
@@ -95,6 +106,9 @@ dependencies {
     // OkHttp for logging network requests
     implementation("com.squareup.okhttp3:okhttp:4.9.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.9.0")
+
+    // NEW: AndroidX Security-Crypto for EncryptedSharedPreferences
+    implementation(libs.androidx.security.crypto)
 
     // REMOVED: kotlinx.serialization JSON library - NOT NEEDED WITH GSON
     // REMOVED: implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")

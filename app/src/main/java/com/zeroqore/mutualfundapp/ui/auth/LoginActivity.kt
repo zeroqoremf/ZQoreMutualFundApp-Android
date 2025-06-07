@@ -30,7 +30,6 @@ class LoginActivity : AppCompatActivity() {
         val authTokenManager = application.container.authTokenManager // GET AUTH TOKEN MANAGER
 
         // Initialize ViewModel using the custom Factory
-        // MODIFIED: Pass both loginRepository and authTokenManager
         viewModel = ViewModelProvider(this, LoginViewModel.Factory(loginRepository, authTokenManager))
             .get(LoginViewModel::class.java)
 
@@ -38,7 +37,8 @@ class LoginActivity : AppCompatActivity() {
         viewModel.loginResult.observe(this) { result ->
             when (result) {
                 is Results.Success -> {
-                    Toast.makeText(this, "Login successful: ${result.data.investorName}", Toast.LENGTH_LONG).show()
+                    // CORRECTED: Access 'username' from result.data (LoginResponse)
+                    Toast.makeText(this, "Login successful: ${result.data.username ?: "User"}", Toast.LENGTH_LONG).show()
                     // Navigate to MainActivity on successful login
                     val intent = Intent(this, MainActivity::class.java)
                     startActivity(intent)

@@ -1,8 +1,8 @@
-// app/src/main/java/com/zeroqore/mutualfundapp/data/AppContainer.kt
+// app/src/main/java/com/zeroqore.mutualfundapp/data/AppContainer.kt
 package com.zeroqore.mutualfundapp.data
 
 import android.content.Context
-import android.util.Log // ADDED: Import for Log class
+import android.util.Log
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
@@ -13,14 +13,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.io.IOException
-
-// Important: Ensure the following data classes are in their own respective .kt files:
-// - MutualFundHolding.kt
-// - PortfolioSummary.kt
-// - AssetAllocation.kt
-// - MutualFundTransaction.kt
-// - MenuItem.kt
-// - Fund.kt
+import java.util.concurrent.TimeUnit
 
 // Import the repository interface and its concrete implementations
 import com.zeroqore.mutualfundapp.network.MutualFundApiService
@@ -30,14 +23,15 @@ import com.zeroqore.mutualfundapp.data.auth.LoginRepository
 import com.zeroqore.mutualfundapp.data.auth.NetworkLoginRepository
 import com.zeroqore.mutualfundapp.data.auth.LocalLoginRepository
 import com.zeroqore.mutualfundapp.network.AuthService
-import com.zeroqore.mutualfundapp.network.RetrofitClient
+import com.zeroqore.mutualfundapp.network.RetrofitClient // This is still used for authService
 import com.zeroqore.mutualfundapp.network.AuthInterceptor
 
-// UPDATED: AppContainer now takes base URL and mock flag from BuildConfig
+// UPDATED: AppContainer now takes base URL and granular mock flags from BuildConfig
 class AppContainer(
     private val context: Context,
-    private val baseUrl: String, // Base URL from BuildConfig
-    private val useMockAssetInterceptor: Boolean // Flag from BuildConfig
+    private val baseUrl: String,
+    private val useLiveLoginApi: Boolean,
+    private val useDashboardMocks: Boolean
 ) {
 
     // Setup HttpLoggingInterceptor for logging network requests and responses
@@ -61,23 +55,18 @@ class AppContainer(
         val pathSegments = request.url.pathSegments
 
         val assetFileName: String? = when {
-            // NEW RULE: Handle dynamic holdings path for mock data
-            url.contains("/api/distributors/") && url.contains("/investors/") && url.endsWith("/holdings") -> {
-                Log.d("AssetInterceptor", "Matched dynamic holdings path. Serving holdings.json") // CHANGED: println to Log.d
-                "holdings.json"
-            }
-            // ADDED: Handle dynamic portfolio-summary path for mock data
-            url.contains("/api/distributors/") && url.contains("/investors/") && url.endsWith("/portfolio-summary") -> {
-                Log.d("AssetInterceptor", "Matched dynamic portfolio summary path. Serving portfolio_summary.json") // CHANGED: println to Log.d
-                "portfolio_summary.json"
-            }
-            // ADDED: Handle dynamic transactions path for mock data -- THIS IS THE NEW ADDITION
-            url.contains("/api/distributors/") && url.contains("/investors/") && url.endsWith("/transactions") -> {
-                Log.d("AssetInterceptor", "Matched dynamic transactions path. Serving transactions.json") // CHANGED: println to Log.d
-                "transactions.json"
-            }
-            // Existing rules (can be kept if other parts of the app still use these direct paths,
-            // but the dynamic rules handle the API calls more robustly)
+            // Updated to match the /api/holdings, /api/transactions, /api/portfolio-summary patterns
+            // from your MutualFundApiService.kt if it's hitting live.
+            // If the service is using `holdings.json` directly as I suggested in the previous response
+            // to align with asset files, then these first three patterns won't be matched.
+            // For clarity, I'm adapting it to match the common /api/X structure
+            // However, remember: If you choose to use `MockMutualFundAppRepository`,
+            // this interceptor is NOT used for dashboard data.
+            url.contains("/api/holdings") -> "holdings.json" // Changed to match common API paths
+            url.contains("/api/transactions") -> "transactions.json"
+            url.contains("/api/portfolio-summary") -> "portfolio_summary.json"
+
+            // Existing rules (can be kept if other parts of the app still use these direct paths)
             url.endsWith("holdings.json") -> "holdings.json"
             url.endsWith("transactions.json") -> "transactions.json"
             url.endsWith("portfolio_summary.json") -> "portfolio_summary.json"
@@ -87,7 +76,7 @@ class AppContainer(
             pathSegments.size >= 2 && pathSegments[pathSegments.size - 2] == "fund_details" ->
                 "fund_details_${pathSegments.last()}"
 
-            // If a previous asset was for "mutual_fund_holdings.json" but now it's "holdings.json"
+            // This seems redundant with holdings.json above, but keeping it if there's a specific use-case
             url.endsWith("mutual_fund_holdings.json") -> "holdings.json"
 
             else -> null
@@ -96,7 +85,7 @@ class AppContainer(
         if (assetFileName != null) {
             try {
                 val jsonString = getJsonFromAssets(assetFileName)
-                Log.d("AssetInterceptor", "Serving $assetFileName for URL: $url") // CHANGED: println to Log.d
+                Log.d("AssetInterceptor", "Serving $assetFileName for URL: $url")
 
                 Response.Builder()
                     .code(200)
@@ -107,7 +96,7 @@ class AppContainer(
                     .addHeader("content-type", "application/json")
                     .build()
             } catch (e: IOException) {
-                Log.e("AssetInterceptor", "Error reading asset file: $assetFileName. ${e.message}", e) // CHANGED: println to Log.e
+                Log.e("AssetInterceptor", "Error reading asset file: $assetFileName. ${e.message}", e)
                 Response.Builder()
                     .code(404)
                     .message("Asset mock file not found or could not be read: $assetFileName")
@@ -118,7 +107,7 @@ class AppContainer(
                     .build()
             }
         } else {
-            Log.d("AssetInterceptor", "No asset mock found for URL: $url. Proceeding to network.") // CHANGED: println to Log.d
+            Log.d("AssetInterceptor", "No asset mock found for URL: $url. Proceeding to network.")
             chain.proceed(request)
         }
     }
@@ -133,16 +122,33 @@ class AppContainer(
         AuthInterceptor(authTokenManager)
     }
 
-    // okHttpClient now conditionally adds assetReadingInterceptor AND AuthInterceptor
+    // okHttpClient now uses authInterceptor always (for authenticated calls) and assetReadingInterceptor conditionally
+    // The assetReadingInterceptor is primarily for scenarios where you want to mock *some* network calls
+    // even when using the NetworkMutualFundAppRepository.
+    // However, for the dashboard, we're explicitly switching the entire repository.
     private val okHttpClient = OkHttpClient.Builder()
         .addInterceptor(loggingInterceptor)
+        .addInterceptor(authInterceptor)
+        // This assetReadingInterceptor is for when you *do* use NetworkMutualFundAppRepository
+        // but want certain paths to be mocked by assets.
+        // It's still good to keep it here if other parts of the app rely on it.
+        // For dashboard calls, we're now bypassing this entire OkHttpClient setup if useDashboardMocks is true.
         .apply {
-            if (useMockAssetInterceptor) {
+            // This is important: if you have BuildConfig.USE_MOCK_ASSET_INTERCEPTOR = true,
+            // then this interceptor should be added.
+            // Your gradle file implies USE_MOCK_ASSET_INTERCEPTOR = true along with USE_DASHBOARD_MOCKS.
+            // If this interceptor is generally intended for *any* asset mocking (not just dashboard),
+            // then its condition should probably be `BuildConfig.USE_MOCK_ASSET_INTERCEPTOR`
+            // rather than `useDashboardMocks`.
+            // For now, I'm keeping it as you had it, tied to `useDashboardMocks` for consistency,
+            // but remember this interceptor won't be hit for dashboard calls if MockMutualFundAppRepository is used.
+            if (useDashboardMocks) { // Or BuildConfig.USE_MOCK_ASSET_INTERCEPTOR
                 addInterceptor(assetReadingInterceptor)
-            } else {
-                addInterceptor(authInterceptor)
             }
         }
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
         .build()
 
     private val retrofit: Retrofit by lazy {
@@ -159,25 +165,27 @@ class AppContainer(
 
     // AuthService instance from RetrofitClient for login
     private val authService: AuthService by lazy {
-        RetrofitClient.authService
-    }
-
-    // UPDATED: mutualFundRepository now conditionally provides Network or Mock repository
-    val mutualFundRepository: MutualFundAppRepository by lazy {
-        if (useMockAssetInterceptor) {
-            // MODIFIED: Pass authTokenManager to NetworkMutualFundAppRepository
-            NetworkMutualFundAppRepository(mutualFundApiService, authTokenManager) // Pass authTokenManager here too
-        } else {
-            NetworkMutualFundAppRepository(mutualFundApiService, authTokenManager) // And here for real API
-        }
+        RetrofitClient.authService // This uses RetrofitClient's own OkHttpClient
     }
 
     // LoginRepository instance now conditionally uses Local or Network repository
     val loginRepository: LoginRepository by lazy {
-        if (useMockAssetInterceptor) {
-            LocalLoginRepository()
-        } else {
+        if (useLiveLoginApi) {
             NetworkLoginRepository(authService)
+        } else {
+            LocalLoginRepository()
+        }
+    }
+
+    // --- CRITICAL FIX HERE ---
+    // mutualFundRepository now correctly provides Network or Mock repository based on useDashboardMocks
+    val mutualFundRepository: MutualFundAppRepository by lazy {
+        if (useDashboardMocks) {
+            Log.d("AppContainer", "Providing MockMutualFundAppRepository for dashboard data.")
+            MockMutualFundAppRepository() // CORRECTED: Provide the Mock implementation
+        } else {
+            Log.d("AppContainer", "Providing NetworkMutualFundAppRepository for dashboard data.")
+            NetworkMutualFundAppRepository(mutualFundApiService, authTokenManager) // Provide the real network implementation
         }
     }
 }

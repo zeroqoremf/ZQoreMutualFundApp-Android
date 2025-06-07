@@ -16,10 +16,14 @@ data class LoginResponse(
     val expiresIn: Long,      // Access token validity in seconds
     @SerializedName("tokenType")
     val tokenType: String,    // E.g., "Bearer"
-    @SerializedName("investorId")
-    val investorId: String,   // Unique identifier for the logged-in investor
-    @SerializedName("distributorId")
-    val distributorId: String,// Unique identifier for the investor's distributor
-    @SerializedName("investorName")
-    val investorName: String? // Optional: User-friendly name of the investor
+
+    // IMPORTANT: These map backend's generic IAM fields to app-specific names
+    @SerializedName("userId") // Backend's 'userId' is a number, map it to Long
+    val userId: Long,   // Changed: Use backend's original 'userId' type
+
+    @SerializedName("parentId") // Backend's 'parentId' is a number or null, map it to Long?
+    val parentId: Long?,// Changed: Use backend's original 'parentId' type and make it nullable
+
+    @SerializedName("username") // Backend's 'username' will be mapped to 'investorName'
+    val username: String? // Changed: Use backend's original 'username' and make it nullable
 )

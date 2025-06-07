@@ -1,3 +1,5 @@
+# libs.versions.toml
+
 [versions]
 agp = "8.8.0"
 kotlin = "1.9.24" # Your current Kotlin version
@@ -7,13 +9,14 @@ junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 appcompat = "1.7.0"
 material = "1.12.0"
-activity = "1.10.1"
-constraintlayout = "2.2.1"
+activity = "1.9.0" # UPDATED: More recent stable version
+constraintlayout = "2.1.4" # CORRECTED: Stable version for ConstraintLayout
 navigation = "2.7.7"
 coroutines = "1.8.0"
 lifecycle = "2.8.0"
 fragmentKtx = "1.7.0"
 swiperefreshlayout = "1.1.0"
+securityCrypto = "1.1.0-alpha06" # ADDED: Version for security-crypto
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -42,8 +45,10 @@ androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecyc
 androidx-fragment-ktx = { group = "androidx.fragment", name = "fragment-ktx", version.ref = "fragmentKtx" }
 androidx-swiperefreshlayout = { group = "androidx.swiperefreshlayout", name = "swiperefreshlayout", version.ref = "swiperefreshlayout" }
 
+# NEW: AndroidX Security-Crypto for EncryptedSharedPreferences
+androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" } # ADDED
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-# ADDED: Kotlin Serialization plugin definition
-kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" } # Version is tied to your 'kotlin' version
+# REMOVED: kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }

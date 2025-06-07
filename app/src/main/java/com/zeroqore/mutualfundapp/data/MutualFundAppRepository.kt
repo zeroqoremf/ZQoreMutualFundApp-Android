@@ -1,4 +1,4 @@
-// app/src/main/java/com/zeroqore/mutualfundapp/data/MutualFundAppRepository.kt
+// app/src/main/java/com/zeroqore.mutualfundapp/data/MutualFundAppRepository.kt
 package com.zeroqore.mutualfundapp.data
 
 import com.zeroqore.mutualfundapp.network.MutualFundApiService
@@ -12,13 +12,18 @@ import android.util.Log // Import Log for logging
 interface MutualFundAppRepository {
     // Keep for now, but consider removing later as it's deprecated in API service
     suspend fun getFundHoldings(): Results<List<MutualFundHolding>>
-    // MODIFIED: Updated signature to reflect changes in MutualFundApiService
-    suspend fun getHoldings(investorId: String, distributorId: String): Results<List<MutualFundHolding>>
+
+    // MODIFIED: Updated signature to accept distributorId as nullable
+    suspend fun getHoldings(investorId: String, distributorId: String?): Results<List<MutualFundHolding>>
+
     suspend fun getMenuItems(): List<MenuItem>
-    // MODIFIED: Interface method remains the same, but implementation will now use IDs
-    suspend fun getPortfolioSummary(investorId: String, distributorId: String): Results<PortfolioSummary>
-    // UPDATED INTERFACE: Now requires investorId and distributorId
-    suspend fun getTransactions(investorId: String, distributorId: String): Results<List<MutualFundTransaction>>
+
+    // MODIFIED: Updated signature to accept distributorId as nullable
+    suspend fun getPortfolioSummary(investorId: String, distributorId: String?): Results<PortfolioSummary>
+
+    // UPDATED INTERFACE: Now requires investorId and distributorId, distributorId is nullable
+    suspend fun getTransactions(investorId: String, distributorId: String?): Results<List<MutualFundTransaction>>
+
     suspend fun getFundDetails(fundId: String): Results<MutualFundHolding>
     suspend fun getFunds(): Results<List<Fund>>
 }
@@ -54,7 +59,7 @@ class NetworkMutualFundAppRepository(
         }
     }
 
-    override suspend fun getHoldings(investorId: String, distributorId: String): Results<List<MutualFundHolding>> {
+    override suspend fun getHoldings(investorId: String, distributorId: String?): Results<List<MutualFundHolding>> {
         return try {
             val holdings = apiService.getHoldings(distributorId, investorId)
             Results.Success(holdings)
@@ -77,6 +82,7 @@ class NetworkMutualFundAppRepository(
     }
 
     override suspend fun getMenuItems(): List<MenuItem> {
+        // This is still a hardcoded list, common for both implementations (or could be moved)
         return listOf(
             MenuItem(id = "profile", title = "My Profile"),
             MenuItem(id = "settings", title = "Settings"),
@@ -87,7 +93,7 @@ class NetworkMutualFundAppRepository(
         )
     }
 
-    override suspend fun getPortfolioSummary(investorId: String, distributorId: String): Results<PortfolioSummary> {
+    override suspend fun getPortfolioSummary(investorId: String, distributorId: String?): Results<PortfolioSummary> {
         return try {
             val summary = apiService.getPortfolioSummary(distributorId, investorId)
             Results.Success(summary)
@@ -109,12 +115,10 @@ class NetworkMutualFundAppRepository(
         }
     }
 
-    // UPDATED: Now correctly calls the parameterized API service method
-    override suspend fun getTransactions(investorId: String, distributorId: String): Results<List<MutualFundTransaction>> {
+    override suspend fun getTransactions(investorId: String, distributorId: String?): Results<List<MutualFundTransaction>> {
         return try {
-            // REVERTED: Now using the parameterized getTransactions() method
-            val transactions = apiService.getTransactions(distributorId, investorId) // <--- CHANGED THIS LINE
-            Log.d("MutualFundAppRepository", "Fetched transactions using parameterized endpoint.") // <--- CHANGED LOG MESSAGE
+            val transactions = apiService.getTransactions(distributorId, investorId)
+            Log.d("MutualFundAppRepository", "Fetched transactions using parameterized endpoint. Investor ID: $investorId, Distributor ID: $distributorId")
             Results.Success(transactions)
         } catch (e: IOException) {
             val errorMessage = "Please check your internet connection for transactions."
@@ -123,20 +127,21 @@ class NetworkMutualFundAppRepository(
         } catch (e: HttpException) {
             val errorBody = e.response()?.errorBody()?.string()
             val errorMessage = when (e.code()) {
-                404 -> "Transactions data not found. Please try again later." // Updated message
-                in 400..499 -> "Client error fetching transactions: ${e.message()} | Body: $errorBody" // Updated message
-                in 500..599 -> "Server error fetching transactions. Please try again later." // Updated message
-                else -> "An unexpected error occurred while fetching transactions: ${e.message()} | Body: $errorBody" // Updated message
+                404 -> "Transactions data not found. Please try again later."
+                in 400..499 -> "Client error fetching transactions: ${e.message()} | Body: $errorBody"
+                in 500..599 -> "Server error fetching transactions. Please try again later."
+                else -> "An unexpected error occurred while fetching transactions: ${e.message()} | Body: $errorBody"
             }
             Log.e("MutualFundAppRepository", "HttpException getTransactions: $errorMessage", e)
             Results.Error(e, errorMessage)
         } catch (e: Exception) {
-            val errorMessage = "An unknown error occurred while fetching transactions: ${e.message}" // Updated message
+            val errorMessage = "An unknown error occurred while fetching transactions: ${e.message}"
             Log.e("MutualFundAppRepository", "Unknown error getTransactions: $errorMessage", e)
             Results.Error(e, errorMessage)
         }
     }
 
+    // ADDED: Implementation for NetworkMutualFundAppRepository to delegate to API service
     override suspend fun getFundDetails(fundId: String): Results<MutualFundHolding> {
         return try {
             val fundDetails = apiService.getFundDetails(fundId)
@@ -159,6 +164,7 @@ class NetworkMutualFundAppRepository(
         }
     }
 
+    // ADDED: Implementation for NetworkMutualFundAppRepository to delegate to API service
     override suspend fun getFunds(): Results<List<Fund>> {
         return try {
             val funds = apiService.getFunds()
@@ -258,11 +264,12 @@ class MockMutualFundAppRepository : MutualFundAppRepository {
         )
     )
 
+    // --- MODIFIED: dummyPortfolioSummary to match calculated values from dummyHoldings ---
     private val dummyPortfolioSummary = PortfolioSummary(
-        totalInvested = 150000.0,
-        currentValue = 165000.0,
-        overallGainLoss = 15000.0,
-        overallGainLossPercentage = 10.0,
+        totalInvested = 125500.0,
+        currentValue = 143000.0,
+        overallGainLoss = 17500.0,
+        overallGainLossPercentage = 13.94, // Rounded for consistency
         lastUpdated = "2024-06-01T14:30:00Z"
     )
 
@@ -355,8 +362,9 @@ class MockMutualFundAppRepository : MutualFundAppRepository {
         return Results.Success(dummyHoldings)
     }
 
-    override suspend fun getHoldings(investorId: String, distributorId: String): Results<List<MutualFundHolding>> {
+    override suspend fun getHoldings(investorId: String, distributorId: String?): Results<List<MutualFundHolding>> {
         delay(1500L) // Add a delay here to simulate network call
+        // In a real mock, you might return different holdings based on investorId/distributorId
         return Results.Success(dummyHoldings)
     }
 
@@ -368,12 +376,12 @@ class MockMutualFundAppRepository : MutualFundAppRepository {
         )
     }
 
-    override suspend fun getPortfolioSummary(investorId: String, distributorId: String): Results<PortfolioSummary> {
+    override suspend fun getPortfolioSummary(investorId: String, distributorId: String?): Results<PortfolioSummary> {
         delay(1500L) // Add a delay here to simulate network call
         return Results.Success(dummyPortfolioSummary)
     }
 
-    override suspend fun getTransactions(investorId: String, distributorId: String): Results<List<MutualFundTransaction>> {
+    override suspend fun getTransactions(investorId: String, distributorId: String?): Results<List<MutualFundTransaction>> {
         delay(1000L) // Simulate network delay
         return Results.Success(dummyTransactions)
     }

@@ -102,11 +102,11 @@ class DashboardFragment : Fragment() {
         }
 
         binding.swipeRefreshLayoutDashboard.setOnRefreshListener {
-            dashboardViewModel.refreshHoldings()
+            dashboardViewModel.refreshAllDashboardData()
         }
 
         binding.refreshFab.setOnClickListener {
-            dashboardViewModel.refreshHoldings()
+            dashboardViewModel.refreshAllDashboardData()
         }
     }
 
