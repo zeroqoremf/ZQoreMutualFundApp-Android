@@ -37,8 +37,10 @@ class LoginViewModel(
                 .onSuccess { loginResponse ->
                     // Convert Long IDs from LoginResponse to String for AuthTokenManager
                     val investorIdString = loginResponse.userId.toString()
-                    val distributorIdString = loginResponse.parentId?.toString() // Convert Long? to String?
-                    val investorNameString = loginResponse.username // Directly use username which is String?
+                    val distributorIdString =
+                        loginResponse.parentId?.toString() // Convert Long? to String?
+                    val investorNameString =
+                        loginResponse.username // Directly use username which is String?
 
                     // SAVE AUTH DATA HERE
                     authTokenManager.saveAuthData(
@@ -50,7 +52,10 @@ class LoginViewModel(
                         distributorId = distributorIdString as String?, // KEY CHANGE: Explicitly cast to String?
                         investorName = investorNameString
                     )
-                    Log.d("LoginViewModel", "Auth data saved to SharedPreferences. Investor ID: $investorIdString, Distributor ID: $distributorIdString")
+                    Log.d(
+                        "LoginViewModel",
+                        "Auth data saved to SharedPreferences. Investor ID: $investorIdString, Distributor ID: $distributorIdString"
+                    )
                     _loginResult.value = Results.Success(loginResponse)
                 }
                 .onFailure { exception ->
