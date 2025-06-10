@@ -21,9 +21,9 @@ object RetrofitClient {
 
     private val okHttpClient = OkHttpClient.Builder()
         .addInterceptor(loggingInterceptor) // Add logging interceptor for debugging
-        .connectTimeout(30, TimeUnit.SECONDS) // Connection timeout
-        .readTimeout(30, TimeUnit.SECONDS)    // Read timeout
-        .writeTimeout(30, TimeUnit.SECONDS)   // Write timeout
+        .connectTimeout(120, TimeUnit.SECONDS) // Connection timeout
+        .readTimeout(120, TimeUnit.SECONDS)    // Read timeout
+        .writeTimeout(120, TimeUnit.SECONDS)   // Write timeout
         .build()
 
     // REMOVED: The entire Json block, as it's for Kotlinx Serialization

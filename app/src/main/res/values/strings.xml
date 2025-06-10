@@ -10,4 +10,25 @@
     <string name="fund_details">Fund Details</string>
     <string name="error_loading_data">Failed to load data. Please try again.</string>
     <string name="no_holdings_found">No fund holdings found.</string>
+    <string name="forgot_password_title">Forgot Password</string>
+    <string name="forgot_password_description">Enter your email or username below to receive a password reset link.</string>
+    <string name="hint_username_email">Email or Username</string>
+    <string name="button_send_reset_link">Send Reset Link</string>
+    <string name="error_email_required">Email or username is required.</string>
+    <string name="success_reset_link_sent">Password reset link sent successfully! Please check your email.</string>
+    <string name="error_request_failed">Failed to send reset link. Please try again.</string>
+    <string name="error_request_failed_no_token">Request processed, but token not received. Please check your email or try again later.</string>
+    <string name="forgot_password_prompt">Forgot Password?</string>
+    <string name="reset_password_title">Reset Password</string>
+    <string name="reset_password_description">Enter the reset token sent to your email and your new password.</string>
+    <string name="hint_reset_token">Reset Token</string>
+    <string name="hint_new_password">New Password</string>
+    <string name="hint_confirm_new_password">Confirm New Password</string>
+    <string name="button_reset_password">Reset Password</string>
+    <string name="error_token_required">Reset token is required.</string>
+    <string name="error_password_required">Password is required.</string>
+    <string name="error_passwords_not_match">Passwords do not match.</string>
+    <string name="success_password_reset">Password has been reset successfully!</string>
+    <string name="error_reset_failed">Failed to reset password. Please try again.</string>
+    <string name="reset_password_new_password_description">Please enter your new password below.</string>
 </resources>

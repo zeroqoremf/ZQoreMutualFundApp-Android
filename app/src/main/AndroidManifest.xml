@@ -14,7 +14,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.ZQoreMutualFundApp"
-        android:usesCleartextTraffic="true"   tools:targetApi="31"> <activity
+        android:usesCleartextTraffic="true"
+        android:enableOnBackInvokedCallback="true" tools:targetApi="34"> <activity
         android:name="com.zeroqore.mutualfundapp.ui.auth.LoginActivity"
         android:exported="true">
         <intent-filter>
@@ -28,6 +29,14 @@
             android:exported="false"
             android:theme="@style/Theme.Material3.DayNight.NoActionBar">
         </activity>
+
+        <activity
+            android:name="com.zeroqore.mutualfundapp.ui.auth.ForgotPasswordActivity"
+            android:exported="false" />
+
+        <activity
+            android:name="com.zeroqore.mutualfundapp.ui.auth.ResetPasswordActivity"
+            android:exported="false" />
 
     </application>
 
