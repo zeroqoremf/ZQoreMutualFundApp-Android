@@ -5,6 +5,8 @@ import android.content.SharedPreferences
 import android.util.Log
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
+import com.google.gson.Gson // NEW IMPORT: For JSON serialization/deserialization
+import com.google.gson.reflect.TypeToken // NEW IMPORT: For deserializing List<String>
 import java.io.IOException
 import java.security.GeneralSecurityException
 
@@ -18,10 +20,12 @@ private const val KEY_TOKEN_TYPE = "token_type"
 private const val KEY_INVESTOR_ID = "investor_id"
 private const val KEY_DISTRIBUTOR_ID = "distributor_id"
 private const val KEY_INVESTOR_NAME = "investor_name"
+private const val KEY_ROLES = "user_roles" // NEW: Key for storing user roles
 
 class AuthTokenManager(context: Context) {
 
     private val prefs: SharedPreferences
+    private val gson = Gson() // NEW: Gson instance for serialization/deserialization
 
     init {
         prefs = try {
@@ -50,27 +54,31 @@ class AuthTokenManager(context: Context) {
     fun saveAuthData(
         accessToken: String,
         refreshToken: String,
-        // expiresIn is the duration in seconds, as received from the backend
-        expiresInSeconds: Long, // Parameter name changed for clarity
+        expiresInSeconds: Long,
         tokenType: String,
         investorId: String,
-        distributorId: String?, // Already correctly nullable
-        investorName: String? // Already correctly nullable
+        distributorId: String?,
+        investorName: String?,
+        roles: List<String> // NEW PARAMETER: List of roles
     ) {
-        // Calculate the absolute expiry timestamp
         val expiryTimestampMillis = System.currentTimeMillis() + expiresInSeconds * 1000
 
         prefs.edit().apply {
             putString(KEY_ACCESS_TOKEN, accessToken)
             putString(KEY_REFRESH_TOKEN, refreshToken)
-            putLong(KEY_EXPIRES_IN_TIMESTAMP, expiryTimestampMillis) // Store the calculated timestamp
+            putLong(KEY_EXPIRES_IN_TIMESTAMP, expiryTimestampMillis)
             putString(KEY_TOKEN_TYPE, tokenType)
             putString(KEY_INVESTOR_ID, investorId)
-            putString(KEY_DISTRIBUTOR_ID, distributorId) // This correctly handles null strings
+            putString(KEY_DISTRIBUTOR_ID, distributorId)
             putString(KEY_INVESTOR_NAME, investorName)
+
+            // NEW: Convert roles list to JSON string and store
+            val rolesJson = gson.toJson(roles)
+            putString(KEY_ROLES, rolesJson)
+
             apply()
         }
-        Log.d("AuthTokenManager", "Saved: Investor ID=$investorId, Distributor ID=$distributorId, Access Token=${accessToken.take(10)}...")
+        Log.d("AuthTokenManager", "Saved: Investor ID=$investorId, Distributor ID=$distributorId, Access Token=${accessToken.take(10)}..., Roles=$roles")
     }
 
     fun getAccessToken(): String? {
@@ -103,9 +111,25 @@ class AuthTokenManager(context: Context) {
         return name
     }
 
+    // NEW: Method to retrieve user roles
+    fun getRoles(): List<String> {
+        val rolesJson = prefs.getString(KEY_ROLES, null)
+        return if (rolesJson != null) {
+            try {
+                // Use TypeToken to correctly deserialize List<String> from JSON
+                val type = object : TypeToken<List<String>>() {}.type
+                gson.fromJson(rolesJson, type)
+            } catch (e: Exception) {
+                Log.e("AuthTokenManager", "Error parsing roles JSON from SharedPreferences: $rolesJson", e)
+                emptyList() // Return empty list on parsing error
+            }
+        } else {
+            emptyList() // Return empty list if no roles are stored
+        }
+    }
+
     fun isLoggedIn(): Boolean {
-        // Check if access token exists AND if it has not expired
-        val accessToken = getAccessToken() // This will now log its retrieval
+        val accessToken = getAccessToken()
         val expiryTimestamp = prefs.getLong(KEY_EXPIRES_IN_TIMESTAMP, 0L)
         val currentTime = System.currentTimeMillis()
         val loggedIn = accessToken != null && expiryTimestamp > currentTime
@@ -119,11 +143,12 @@ class AuthTokenManager(context: Context) {
         prefs.edit().apply {
             remove(KEY_ACCESS_TOKEN)
             remove(KEY_REFRESH_TOKEN)
-            remove(KEY_EXPIRES_IN_TIMESTAMP) // Use the new key for removal
+            remove(KEY_EXPIRES_IN_TIMESTAMP)
             remove(KEY_TOKEN_TYPE)
             remove(KEY_INVESTOR_ID)
             remove(KEY_DISTRIBUTOR_ID)
             remove(KEY_INVESTOR_NAME)
+            remove(KEY_ROLES) // NEW: Remove roles when clearing auth data
             apply()
         }
         Log.d("AuthTokenManager", "Auth data cleared.")

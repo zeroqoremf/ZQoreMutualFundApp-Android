@@ -29,7 +29,8 @@ class LocalLoginRepository : LoginRepository {
                     tokenType = "Bearer",
                     userId = 12345L, // Dummy Long ID for investorId
                     parentId = 67890L, // Dummy Long ID for distributorId, or null if no parent
-                    username = "Local Test User" // Dummy username for investorName
+                    username = "Local Test User", // Dummy username for investorName
+                    roles = listOf("ROLE_INVESTOR") // NEW: Add dummy roles for local testing
                 )
             )
         } else {
@@ -43,26 +44,23 @@ class LocalLoginRepository : LoginRepository {
      * Simulates a request for password reset.
      * Always succeeds locally for `DUMMY_USERNAME` after a delay.
      */
-    override suspend fun requestPasswordReset(request: ForgotPasswordRequest): Result<ForgotPasswordInitiateResponse> { // <--- CHANGED RETURN TYPE
+    override suspend fun requestPasswordReset(request: ForgotPasswordRequest): Result<ForgotPasswordInitiateResponse> {
         Log.d("LocalLoginRepository", "Simulating local password reset request for: ${request.username}")
         delay(800) // Simulate a short delay
 
-        // You can add logic here if you want to simulate failure for non-dummy users,
-        // or always succeed for testing the UI flow.
         return if (request.username == DUMMY_USERNAME) {
             Log.d("LocalLoginRepository", "Local password reset request successful for ${request.username}.")
-            // Return ForgotPasswordInitiateResponse with dummy token
             Result.success(
                 ForgotPasswordInitiateResponse(
                     message = "Dummy reset link sent locally. Token: dummy-local-token",
                     identifier = request.username,
-                    resetToken = "dummy-local-reset-token-${System.currentTimeMillis()}", // Unique dummy token
+                    resetToken = "dummy-local-reset-token-${System.currentTimeMillis()}",
                     tokenExpiryMinutes = 30
                 )
             )
         } else {
             Log.e("LocalLoginRepository", "Local password reset request failed for ${request.username}: User not found.")
-            Result.failure(Exception("User not found or email could not be sent.")) // Simulate a common error
+            Result.failure(Exception("User not found or email could not be sent."))
         }
     }
 
@@ -74,9 +72,7 @@ class LocalLoginRepository : LoginRepository {
         Log.d("LocalLoginRepository", "Simulating local password reset confirmation.")
         delay(1200) // Simulate a short delay
 
-        // For local testing, you might just always succeed here to test the UI flow.
-        // Or add logic to simulate invalid token/password mismatch errors.
         Log.d("LocalLoginRepository", "Local password reset confirmation successful.")
-        return Result.success(Unit) // Return Unit on success
+        return Result.success(Unit)
     }
 }

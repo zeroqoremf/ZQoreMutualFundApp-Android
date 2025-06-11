@@ -25,5 +25,9 @@ data class LoginResponse(
     val parentId: Long?,// Changed: Use backend's original 'parentId' type and make it nullable
 
     @SerializedName("username") // Backend's 'username' will be mapped to 'investorName'
-    val username: String? // Changed: Use backend's original 'username' and make it nullable
+    val username: String?, // Changed: Use backend's original 'username' and make it nullable
+
+    // NEW: Add the roles field to match the backend LoginResponse DTO
+    @SerializedName("roles")
+    val roles: List<String> // List of roles assigned to the user (e.g., "ROLE_INVESTOR")
 )

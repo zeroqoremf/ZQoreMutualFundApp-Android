@@ -43,18 +43,20 @@ class LoginViewModel(
                         loginResponse.username // Directly use username which is String?
 
                     // SAVE AUTH DATA HERE
+                    // NEW: Pass the roles from loginResponse to saveAuthData
                     authTokenManager.saveAuthData(
                         accessToken = loginResponse.accessToken,
                         refreshToken = loginResponse.refreshToken,
-                        expiresInSeconds = loginResponse.expiresIn, // Updated parameter name
-                        tokenType = loginResponse.tokenType,        // Updated parameter name
+                        expiresInSeconds = loginResponse.expiresIn,
+                        tokenType = loginResponse.tokenType,
                         investorId = investorIdString,
-                        distributorId = distributorIdString as String?, // KEY CHANGE: Explicitly cast to String?
-                        investorName = investorNameString
+                        distributorId = distributorIdString as String?,
+                        investorName = investorNameString,
+                        roles = loginResponse.roles // <--- ADDED THIS LINE
                     )
                     Log.d(
                         "LoginViewModel",
-                        "Auth data saved to SharedPreferences. Investor ID: $investorIdString, Distributor ID: $distributorIdString"
+                        "Auth data saved to SharedPreferences. Investor ID: $investorIdString, Distributor ID: $distributorIdString, Roles: ${loginResponse.roles}"
                     )
                     _loginResult.value = Results.Success(loginResponse)
                 }
